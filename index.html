@@ -2554,8 +2554,12 @@
             </div>
         `;
         document.querySelector('.container').appendChild(successDiv);
-        // Mark all 4 steps green on the confirmation screen
-        updateProgressBar(5);
+        // Mark all 4 steps green — set directly so there's no index-out-of-bounds issue
+        document.querySelectorAll('.progress-step').forEach(function(s) {
+            s.classList.remove('active', 'disabled');
+            s.classList.add('completed');
+        });
+        document.getElementById('progressText').textContent = 'Onboarding Complete!';
     }
 
 
