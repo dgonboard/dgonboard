@@ -1048,6 +1048,21 @@
     }
     // ─────────────────────────────────────────────────────────────
 
+    // ── Utilities ────────────────────────────────────────────────
+    // debounce: returns a fn that waits `ms` ms after last call before firing
+    function debounce(fn, ms) {
+        let timer;
+        return function() {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, arguments), ms);
+        };
+    }
+
+    // ── Cached DOM references (set on DOMContentLoaded) ──────────
+    let _signedCountEl = null;
+    let _docsContainer = null;
+
+    // ── State ────────────────────────────────────────────────────
     let currentStep = 1;
     const formData = {
         step1: {},
@@ -1675,6 +1690,10 @@
     }
     // ────────────────────────────────────────────────────────────────
 
+    // Debounced versions — fire 300ms after the user stops typing/changing
+    const autoSaveStep1Debounced = debounce(function() { autoSaveStep1(); }, 300);
+    const autoSaveStep2Debounced = debounce(function() { autoSaveStep2(); }, 300);
+
     function autoSaveStep1() {
         // Silently save whatever is currently in the step 1 fields (no validation)
         const legallyEntitledEl = document.querySelector('input[name="legallyEntitled"]:checked');
@@ -1871,189 +1890,130 @@
         document.getElementById('progressText').textContent = `Step ${step} of 4: ${stepLabels[step - 1]}`;
     }
 
+    // ── Build the inner content HTML for one document (called lazily on first open) ──
+    function buildDocumentContent(doc) {
+        let html = `<div class="document-text">${doc.content}</div>`;
+
+        if (doc.readOnly) {
+            html += `
+                <div class="signature-section">
+                    <div class="form-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="${doc.id}_acknowledged" name="${doc.id}_acknowledged" onchange="updateDocumentStatus('${doc.id}')">
+                            <label for="${doc.id}_acknowledged">I acknowledge that I have read this information</label>
+                        </div>
+                    </div>
+                </div>`;
+        } else if (doc.isPdfEmbed) {
+            html += `
+                <div style="margin:16px 0;">
+                    <iframe id="${doc.id}_pdfViewer" src="" style="width:100%;height:600px;border:1.5px solid #ccc;border-radius:8px;background:#e9e9e9;" loading="lazy"></iframe>
+                    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+                        <a id="${doc.id}_pdfDownload" download="TD1-Personal-Tax-Credits-Return-2021.pdf" style="display:inline-block;padding:8px 16px;background:#FF6B00;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600;cursor:pointer;">Download TD1 PDF</a>
+                        <span style="font-size:12px;color:#999;align-self:center;">Print this form, fill it out, and submit the completed copy to your employer.</span>
+                    </div>
+                </div>
+                <div class="signature-section" style="margin-top:20px;">
+                    <p style="font-size:14px;color:#444;margin-bottom:12px;"><strong>Certification:</strong> I certify that I have reviewed, completed, and submitted the TD1 Personal Tax Credits Return form.</p>
+                    <div class="signature-row">
+                        <div class="signature-label">Employee Signature</div>
+                        <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_empSig')">Clear Signature</button></div>
+                        <canvas id="${doc.id}_empSig" style="width:100%;height:75px;"></canvas>
+                        <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_empDate" onchange="updateDocumentStatus('${doc.id}')"></div>
+                    </div>
+                </div>`;
+        } else if (doc.isSafetyDoc) {
+            html += `<div style="margin:20px 0;background:#f0f4f8;padding:15px;border-radius:4px;">`;
+            doc.subSections.forEach(sub => {
+                html += `
+                    <div style="margin-bottom:20px;border:1px solid #ddd;border-radius:4px;overflow:hidden;">
+                        <div style="background:#f9f9f9;padding:12px;cursor:pointer;font-weight:600;color:#FF6B00;" onclick="toggleSubAccordion(this)">${sub.title}</div>
+                        <div style="display:none;padding:15px;background:white;">
+                            <div class="document-text">${sub.content}</div>
+                            <div class="signature-section">
+                                <div class="signature-row">
+                                    <div class="signature-label">Employee Signature</div>
+                                    <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${sub.id}_empSig')">Clear Signature</button></div>
+                                    <canvas id="${sub.id}_empSig" style="width:100%;height:75px;"></canvas>
+                                    <div class="signature-date"><label>Date:</label><input type="date" id="${sub.id}_empDate" onchange="updateDocumentStatus('${doc.id}')"></div>
+                                </div>
+                                ${doc.requiresParentSig ? `
+                                <div class="signature-row">
+                                    <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></div>
+                                    <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${sub.id}_guardianSig')">Clear Signature</button></div>
+                                    <canvas id="${sub.id}_guardianSig" style="width:100%;height:75px;"></canvas>
+                                    <div class="signature-date"><label>Date:</label><input type="date" id="${sub.id}_guardianDate" onchange="updateDocumentStatus('${doc.id}')"></div>
+                                </div>` : ''}
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            html += `</div>`;
+        } else {
+            if (doc.formFields && doc.formFields.length > 0) {
+                html += `<div style="margin:20px 0;background:#f9f9f9;padding:15px;border-radius:4px;">`;
+                doc.formFields.forEach(field => {
+                    const commonAttrs = `id="${doc.id}_${field.name}" name="${field.name}" ${field.required ? 'required' : ''}`;
+                    if (field.type === 'number') {
+                        html += `<div class="form-group"><label for="${doc.id}_${field.name}">${field.label}${field.required ? ' *' : ''}</label><input type="number" ${commonAttrs} ${field.value ? `value="${field.value}"` : ''}></div>`;
+                    } else if (field.type === 'date') {
+                        html += `<div class="form-group"><label for="${doc.id}_${field.name}">${field.label}${field.required ? ' *' : ''}</label><input type="date" ${commonAttrs}></div>`;
+                    } else if (field.type === 'text') {
+                        html += `<div class="form-group"><label for="${doc.id}_${field.name}">${field.label}${field.required ? ' *' : ''}</label><input type="text" ${commonAttrs}></div>`;
+                    }
+                });
+                html += `</div>`;
+            }
+            html += `
+                <div class="signature-section">
+                    <div class="signature-row">
+                        <div class="signature-label">Employee Signature</div>
+                        <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_empSig')">Clear Signature</button></div>
+                        <canvas id="${doc.id}_empSig" style="width:100%;height:75px;"></canvas>
+                        <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_empDate" onchange="updateDocumentStatus('${doc.id}')"></div>
+                    </div>
+                    ${doc.requiresParentSig ? `
+                    <div class="signature-row">
+                        <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></div>
+                        <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_guardianSig')">Clear Signature</button></div>
+                        <canvas id="${doc.id}_guardianSig" style="width:100%;height:75px;"></canvas>
+                        <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_guardianDate" onchange="updateDocumentStatus('${doc.id}')"></div>
+                    </div>` : ''}
+                </div>`;
+        }
+        return html;
+    }
+
+    // ── renderDocuments: only builds accordion headers up front.
+    //    Content is injected lazily the first time each accordion opens.
     function renderDocuments() {
-        const container = document.getElementById('documentsContainer');
+        const container = _docsContainer || document.getElementById('documentsContainer');
         container.innerHTML = '';
 
-        documents.forEach((doc, idx) => {
+        documents.forEach((doc) => {
+            const headerClass = doc.status === 'signed' ? 'status-signed'
+                : doc.status === 'read' ? 'status-read'
+                : doc.status === 'readonly' ? 'status-readonly' : 'status-pending';
+            const statusText = doc.readOnly
+                ? 'Read Only'
+                : doc.status.charAt(0).toUpperCase() + doc.status.slice(1);
+
             const docElement = document.createElement('div');
             docElement.className = 'accordion';
-
-            const headerClass = doc.status === 'signed' ? 'status-signed' : doc.status === 'read' ? 'status-read' : doc.status === 'readonly' ? 'status-readonly' : 'status-pending';
-            const statusText = doc.readOnly ? 'Read Only' : doc.status.charAt(0).toUpperCase() + doc.status.slice(1);
-
-            let contentHTML = `
-                <div class="accordion-content" id="${doc.id}_content">
-                    <div class="document-text">${doc.content}</div>
-            `;
-
-            if (doc.readOnly) {
-                contentHTML += `
-                    <div class="signature-section">
-                        <div class="form-group">
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="${doc.id}_acknowledged" name="${doc.id}_acknowledged" onchange="updateDocumentStatus('${doc.id}')">
-                                <label for="${doc.id}_acknowledged">I acknowledge that I have read this information</label>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else if (doc.isPdfEmbed) {
-                contentHTML += `
-                    <div style="margin:16px 0;">
-                        <iframe id="${doc.id}_pdfViewer" src="" style="width:100%;height:600px;border:1.5px solid #ccc;border-radius:8px;background:#e9e9e9;" loading="lazy"></iframe>
-                        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
-                            <a id="${doc.id}_pdfDownload" download="TD1-Personal-Tax-Credits-Return-2021.pdf" style="display:inline-block;padding:8px 16px;background:#FF6B00;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600;cursor:pointer;">Download TD1 PDF</a>
-                            <span style="font-size:12px;color:#999;align-self:center;">Print this form, fill it out, and submit the completed copy to your employer.</span>
-                        </div>
-                    </div>
-                    <div class="signature-section" style="margin-top:20px;">
-                        <p style="font-size:14px;color:#444;margin-bottom:12px;"><strong>Certification:</strong> I certify that I have reviewed, completed, and submitted the TD1 Personal Tax Credits Return form.</p>
-                        <div class="signature-row">
-                            <div class="signature-label">Employee Signature</div>
-                            <div class="sig-controls">
-                                <button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_empSig')">Clear Signature</button>
-                            </div>
-                            <canvas id="${doc.id}_empSig" style="width:100%; height:75px;"></canvas>
-                            <div class="signature-date">
-                                <label>Date:</label>
-                                <input type="date" id="${doc.id}_empDate" onchange="updateDocumentStatus('${doc.id}')">
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else if (doc.isSafetyDoc) {
-                contentHTML += `<div style="margin: 20px 0; background: #f0f4f8; padding: 15px; border-radius: 4px;">`;
-                doc.subSections.forEach(sub => {
-                    contentHTML += `
-                        <div style="margin-bottom: 20px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
-                            <div style="background: #f9f9f9; padding: 12px; cursor: pointer; font-weight: 600; color: #FF6B00;" onclick="toggleSubAccordion(this)">
-                                ${sub.title}
-                            </div>
-                            <div style="display: none; padding: 15px; background: white;">
-                                <div class="document-text">${sub.content}</div>
-                                <div class="signature-section">
-                                    <div class="signature-row">
-                                        <div class="signature-label">Employee Signature</div>
-                                        <div class="sig-controls">
-                                            <button type="button" class="btn-secondary" onclick="clearSignature('${sub.id}_empSig')">Clear Signature</button>
-                                        </div>
-                                        <canvas id="${sub.id}_empSig" style="width:100%; height:75px;"></canvas>
-                                        <div class="signature-date">
-                                            <label>Date:</label>
-                                            <input type="date" id="${sub.id}_empDate" onchange="updateDocumentStatus('${doc.id}')">
-                                        </div>
-                                    </div>
-                                    ${doc.requiresParentSig ? `
-                                        <div class="signature-row">
-                                            <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></div>
-                                            <div class="sig-controls">
-                                                <button type="button" class="btn-secondary" onclick="clearSignature('${sub.id}_guardianSig')">Clear Signature</button>
-                                            </div>
-                                            <canvas id="${sub.id}_guardianSig" style="width:100%; height:75px;"></canvas>
-                                            <div class="signature-date">
-                                                <label>Date:</label>
-                                                <input type="date" id="${sub.id}_guardianDate" onchange="updateDocumentStatus('${doc.id}')">
-                                            </div>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                contentHTML += `</div>`;
-            } else {
-                if (doc.formFields && doc.formFields.length > 0) {
-                    contentHTML += `<div style="margin: 20px 0; background: #f9f9f9; padding: 15px; border-radius: 4px;">`;
-                    doc.formFields.forEach(field => {
-                        if (field.type === 'number') {
-                            contentHTML += `
-                                <div class="form-group">
-                                    <label for="${doc.id}_${field.name}">${field.label}${field.required ? ' *' : ''}</label>
-                                    <input type="number" id="${doc.id}_${field.name}" name="${field.name}" ${field.required ? 'required' : ''} ${field.value ? `value="${field.value}"` : ''}>
-                                </div>
-                            `;
-                        } else if (field.type === 'date') {
-                            contentHTML += `
-                                <div class="form-group">
-                                    <label for="${doc.id}_${field.name}">${field.label}${field.required ? ' *' : ''}</label>
-                                    <input type="date" id="${doc.id}_${field.name}" name="${field.name}" ${field.required ? 'required' : ''}>
-                                </div>
-                            `;
-                        } else if (field.type === 'text') {
-                            contentHTML += `
-                                <div class="form-group">
-                                    <label for="${doc.id}_${field.name}">${field.label}${field.required ? ' *' : ''}</label>
-                                    <input type="text" id="${doc.id}_${field.name}" name="${field.name}" ${field.required ? 'required' : ''}>
-                                </div>
-                            `;
-                        }
-                    });
-                    contentHTML += `</div>`;
-                }
-
-                contentHTML += `
-                    <div class="signature-section">
-                        <div class="signature-row">
-                            <div class="signature-label">Employee Signature</div>
-                            <div class="sig-controls">
-                                <button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_empSig')">Clear Signature</button>
-                            </div>
-                            <canvas id="${doc.id}_empSig" style="width:100%; height:75px;"></canvas>
-                            <div class="signature-date">
-                                <label>Date:</label>
-                                <input type="date" id="${doc.id}_empDate" onchange="updateDocumentStatus('${doc.id}')">
-                            </div>
-                        </div>
-                        ${doc.requiresParentSig ? `
-                            <div class="signature-row">
-                                <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></div>
-                                <div class="sig-controls">
-                                    <button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_guardianSig')">Clear Signature</button>
-                                </div>
-                                <canvas id="${doc.id}_guardianSig" style="width:100%; height:75px;"></canvas>
-                                <div class="signature-date">
-                                    <label>Date:</label>
-                                    <input type="date" id="${doc.id}_guardianDate" onchange="updateDocumentStatus('${doc.id}')">
-                                </div>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            }
-
-            contentHTML += `</div>`;
-
             docElement.setAttribute('data-doc-id', doc.id);
             docElement.innerHTML = `
                 <div class="accordion-header" onclick="toggleAccordion(this)">
                     <div class="doc-header">
                         <div>
                             <strong>${doc.title}</strong>
-                            <br><small style="opacity: 0.8;">${doc.section}</small>
+                            <br><small style="opacity:0.8;">${doc.section}</small>
                         </div>
                         <span class="status-badge ${headerClass}">${statusText}</span>
                     </div>
                 </div>
-                ${contentHTML}
-            `;
+                <div class="accordion-content" id="${doc.id}_content"></div>`;
 
             container.appendChild(docElement);
-
-            if (!doc.readOnly && !doc.isSafetyDoc) {
-                setupSignaturePad(`${doc.id}_empSig`, doc.id);
-                if (doc.requiresParentSig) {
-                    setupSignaturePad(`${doc.id}_guardianSig`, doc.id);
-                }
-            } else if (doc.isSafetyDoc) {
-                doc.subSections.forEach(sub => {
-                    setupSignaturePad(`${sub.id}_empSig`, doc.id);
-                    if (doc.requiresParentSig) {
-                        setupSignaturePad(`${sub.id}_guardianSig`, doc.id);
-                    }
-                });
-            }
         });
 
         updateSignedCount();
@@ -2084,22 +2044,28 @@
         const content = header.nextElementSibling;
         content.classList.toggle('active');
 
-        // Initialize signature pads when accordion is first opened
-        if (content.classList.contains('active')) {
-            // Check if this is the TD1 PDF embed and load it
-            if (content.id === 'doc14_content') {
-                loadTD1PDF();
-            }
+        if (!content.classList.contains('active')) return;
+
+        // ── Lazy content injection: build HTML the first time this accordion opens ──
+        if (!content.dataset.rendered) {
+            content.dataset.rendered = 'true';
+            const docId = content.closest('[data-doc-id]').getAttribute('data-doc-id');
+            const doc = documents.find(d => d.id === docId);
+            if (doc) content.innerHTML = buildDocumentContent(doc);
         }
-        if (content.classList.contains('active') && !content.dataset.sigsInitialized) {
+
+        // ── TD1 PDF: load iframe src on first open ──
+        if (content.id === 'doc14_content' && !content.dataset.pdfLoaded) {
+            content.dataset.pdfLoaded = 'true';
+            loadTD1PDF();
+        }
+
+        // ── Lazy canvas init: set up signature pads after layout settles ──
+        if (!content.dataset.sigsInitialized) {
             content.dataset.sigsInitialized = 'true';
-            // Small delay to let the browser render the visible content
             setTimeout(() => {
-                const canvases = content.querySelectorAll('canvas');
-                canvases.forEach(canvas => {
-                    const canvasId = canvas.id;
-                    const docId = canvasId.split('_')[0];
-                    initSignaturePad(canvasId, docId);
+                content.querySelectorAll('canvas').forEach(canvas => {
+                    initSignaturePad(canvas.id, canvas.id.split('_')[0]);
                 });
             }, 50);
         }
@@ -2270,7 +2236,7 @@
 
     function updateSignedCount() {
         const signed = documents.filter(d => d.status === 'signed' || (d.readOnly && d.status === 'read')).length;
-        document.getElementById('signedCount').textContent = signed;
+        if (_signedCountEl) _signedCountEl.textContent = signed;
         updateDocsTodoPanel();
     }
 
@@ -2751,6 +2717,10 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        // Cache frequently-accessed elements once
+        _signedCountEl = document.getElementById('signedCount');
+        _docsContainer = document.getElementById('documentsContainer');
+
         updateProgressBar(1);
 
         // Warn the user if they try to close/navigate away while submission is uploading
@@ -2768,10 +2738,10 @@
         step1Fields.forEach(function(id) {
             const el = document.getElementById(id);
             if (!el) return;
-            el.addEventListener('input',  autoSaveStep1);
-            el.addEventListener('change', autoSaveStep1);
+            el.addEventListener('input',  autoSaveStep1Debounced);
+            el.addEventListener('change', autoSaveStep1Debounced);
         });
-        // Radio groups
+        // Radio groups — instant save (no typing involved)
         document.querySelectorAll('input[name="legallyEntitled"], input[name="paidFees"], input[name="offCampus"]')
             .forEach(function(r) { r.addEventListener('change', autoSaveStep1); });
         document.getElementById('workPermitFile').addEventListener('change', autoSaveStep1);
@@ -2783,9 +2753,33 @@
         step2Fields.forEach(function(id) {
             const el = document.getElementById(id);
             if (!el) return;
-            el.addEventListener('input',  autoSaveStep2);
-            el.addEventListener('change', autoSaveStep2);
+            el.addEventListener('input',  autoSaveStep2Debounced);
+            el.addEventListener('change', autoSaveStep2Debounced);
         });
+
+        // ── Debounced resize: re-measure open canvases on orientation change ────
+        window.addEventListener('resize', debounce(function() {
+            document.querySelectorAll('.accordion-content.active canvas').forEach(function(canvas) {
+                if (!initializedCanvases.has(canvas.id)) return;
+                const dpr = window.devicePixelRatio || 1;
+                const isMobile = window.innerWidth <= 768;
+                const h = isMobile ? 90 : 75;
+                const w = canvas.getBoundingClientRect().width;
+                if (w < 10) return;
+                // Preserve signed state across resize
+                const wasSigned = canvas.dataset.signed === 'true';
+                canvas.width  = w * dpr;
+                canvas.height = h * dpr;
+                canvas.style.height = h + 'px';
+                const ctx = canvas.getContext('2d');
+                ctx.scale(dpr, dpr);
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                if (wasSigned) canvas.dataset.signed = 'true';
+            });
+        }, 250));
     });
 </script>
 
