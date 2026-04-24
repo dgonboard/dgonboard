@@ -2119,34 +2119,31 @@
         }
     }
 
-    function closeAllAccordions(exceptHeader) {
-        const container = _docsContainer || document.getElementById('documentsContainer');
-        if (!container) return;
-        for (let i = 0; i < container.children.length; i++) {
-            const acc = container.children[i];
-            const h = acc.firstElementChild;
-            if (!h) continue;
-            const c = h.nextElementSibling;
-            if (!c) continue;
-            if (h === exceptHeader) continue;
-            h.classList.remove('active');
-            c.classList.remove('active');
-            c.style.display = 'none';
-        }
-    }
-
     function toggleAccordion(header) {
         const content = header.nextElementSibling;
         const isOpening = !content.classList.contains('active');
 
-        // Close all other open accordions first
-        if (isOpening) {
-            closeAllAccordions(header);
-        }
+        // Close ALL accordions using the documents array (reliable IDs)
+        documents.forEach(function(doc) {
+            var ids = doc.isSafetyDoc && doc.subSections
+                ? doc.subSections.map(function(s){ return s.id; })
+                : [doc.id];
+            ids.forEach(function(id) {
+                var c = document.getElementById(id + '_content');
+                if (!c) return;
+                var h = c.previousElementSibling;
+                if (h) h.classList.remove('active');
+                c.classList.remove('active');
+                c.style.display = 'none';
+            });
+        });
 
-        header.classList.toggle('active');
-        content.classList.toggle('active');
-        content.style.display = content.classList.contains('active') ? 'block' : 'none';
+        // If the clicked accordion was closed, open it now
+        if (isOpening) {
+            header.classList.add('active');
+            content.classList.add('active');
+            content.style.display = 'block';
+        }
 
         if (!content.classList.contains('active')) return;
 
