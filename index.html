@@ -726,7 +726,7 @@
         <h2>Personal Information</h2>
         <p style="color: #666; margin: 15px 0 30px 0;">Please complete all required fields below.</p>
 
-        <form id="step1Form">
+        <form id="step1Form" novalidate>
             <div class="form-group">
                 <label for="restaurantNumber">A&amp;W Restaurant Number *</label>
                 <select id="restaurantNumber" name="restaurantNumber" required style="width:100%; padding:10px 12px; border:1px solid #ddd; border-radius:4px; font-size:14px; background:#fff; cursor:pointer;">
@@ -950,7 +950,7 @@
             </pre>
         </div>
 
-        <form id="step2Form">
+        <form id="step2Form" novalidate>
             <div class="form-group">
                 <label for="institutionName">Financial Institution Name <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></label>
                 <input type="text" id="institutionName" name="institutionName" placeholder="e.g., Royal Bank of Canada">
@@ -1688,19 +1688,16 @@
     }
 
     function validateAndNextStep(step) {
-        // Save data as the employee moves forward, but never block navigation.
-        // The only hard block is at final submission.
+        // Never block navigation — the only hard block is the final Submit button.
         if (step === 1) {
-            saveStep1Data();
-            clearFieldErrors('step1Form');
-            const s = document.querySelector('#step1Form .step-error-summary');
-            if (s) s.remove();
+            try { saveStep1Data(); } catch(e) {}
+            try { clearFieldErrors('step1Form'); } catch(e) {}
+            try { const s = document.querySelector('#step1Form .step-error-summary'); if (s) s.remove(); } catch(e) {}
             goToStep(2);
         } else if (step === 2) {
-            saveStep2Data();
-            clearFieldErrors('step2Form');
-            const s = document.querySelector('#step2Form .step-error-summary');
-            if (s) s.remove();
+            try { saveStep2Data(); } catch(e) {}
+            try { clearFieldErrors('step2Form'); } catch(e) {}
+            try { const s = document.querySelector('#step2Form .step-error-summary'); if (s) s.remove(); } catch(e) {}
             goToStep(3);
         } else if (step === 3) {
             goToStep(4);
