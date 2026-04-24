@@ -1977,7 +1977,8 @@
                         <canvas id="${doc.id}_empSig" style="width:100%;height:75px;"></canvas>
                         <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_empDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
                     </div>
-                </div>`;
+                </div>
+                <button id="${doc.id}_done_btn" type="button" onclick="collapseMainAccordion('${doc.id}')" style="display:none;margin-top:20px;width:100%;padding:14px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;">✓ Done — Collapse Section</button>`;
         } else if (doc.isSafetyDoc) {
             html += `<div style="margin:20px 0;background:#f0f4f8;padding:15px;border-radius:4px;">`;
             doc.subSections.forEach(sub => {
@@ -2004,6 +2005,7 @@
                                     <div class="signature-date"><label>Date:</label><input type="date" id="${sub.id}_guardianDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
                                 </div>` : ''}
                             </div>
+                            <button id="${sub.id}_done_btn" type="button" onclick="collapseSubSection('${sub.id}')" style="display:none;margin-top:20px;width:100%;padding:14px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;">✓ Done — Next Sub-Section</button>
                         </div>
                     </div>`;
             });
@@ -2038,7 +2040,8 @@
                         <canvas id="${doc.id}_guardianSig" style="width:100%;height:75px;"></canvas>
                         <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_guardianDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
                     </div>` : ''}
-                </div>`;
+                </div>
+                <button id="${doc.id}_done_btn" type="button" onclick="collapseMainAccordion('${doc.id}')" style="display:none;margin-top:20px;width:100%;padding:14px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;">✓ Done — Collapse Section</button>`;
         }
         return html;
     }
@@ -2333,19 +2336,10 @@
                     badge.textContent = subSigned ? 'Signed' : 'Pending';
                 }
 
-                // Show "Done" button once signed (instead of auto-collapsing)
+                // Show the pre-built Done button when signed
                 if (subSigned) {
-                    const subContent = empCanvas ? empCanvas.closest('.sub-acc-cnt') : null;
-                    if (subContent && subContent.style.display === 'block' && !subContent.querySelector('.section-done-btn')) {
-                        const btn = document.createElement('button');
-                        btn.className = 'section-done-btn';
-                        btn.style.cssText = 'margin-top:24px;width:100%;padding:14px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:0.3px;';
-                        btn.textContent = '✓ Done — Next Sub-Section';
-                        const sid = sub.id;
-                        btn.onclick = function() { collapseSubSection(sid); };
-                        subContent.appendChild(btn);
-                        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
+                    const doneBtn = document.getElementById(sub.id + '_done_btn');
+                    if (doneBtn) doneBtn.style.display = 'block';
                 }
             });
         } else {
@@ -2388,17 +2382,10 @@
             }
         }
 
-        // Show "Done" button when fully complete (instead of auto-collapsing)
-        if (isDone && content && content.classList.contains('active')) {
-            if (!content.querySelector('.section-done-btn')) {
-                const btn = document.createElement('button');
-                btn.className = 'section-done-btn';
-                btn.style.cssText = 'margin-top:24px;width:100%;padding:14px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:0.3px;';
-                btn.textContent = '✓ Done — Collapse Section';
-                btn.onclick = function() { collapseMainAccordion(docId); };
-                content.appendChild(btn);
-                btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
+        // Show the pre-built Done button when fully complete
+        if (isDone) {
+            const doneBtn = document.getElementById(docId + '_done_btn');
+            if (doneBtn) doneBtn.style.display = 'block';
         }
     }
 
