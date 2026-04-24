@@ -2007,8 +2007,8 @@
             doc.subSections.forEach(sub => {
                 html += `
                     <div style="margin-bottom:20px;border:1px solid #ddd;border-radius:4px;overflow:hidden;">
-                        <div style="background:#f9f9f9;padding:12px;cursor:pointer;font-weight:600;color:#FF6B00;" onclick="toggleSubAccordion(this)">${sub.title}</div>
-                        <div style="display:none;padding:15px;background:white;">
+                        <div class="sub-acc-hdr" style="background:#f9f9f9;padding:12px;cursor:pointer;font-weight:600;color:#FF6B00;" onclick="toggleSubAccordion(this)">${sub.title}</div>
+                        <div class="sub-acc-cnt" style="display:none;padding:15px;background:white;">
                             <div class="document-text">${sub.content}</div>
                             <div class="signature-section">
                                 <div class="signature-row">
@@ -2101,35 +2101,30 @@
 
     function toggleSubAccordion(header) {
         const content = header.nextElementSibling;
-        const isHidden = content.style.display === 'none' || content.style.display === '';
+        const isOpening = content.style.display === 'none' || content.style.display === '';
 
-        // Close all sibling sub-sections before opening this one.
-        // header.parentElement = the wrapper div for THIS sub-section
-        // header.parentElement.parentElement = the outer wrapper holding ALL sub-sections
-        const outerWrapper = header.parentElement && header.parentElement.parentElement;
-        if (outerWrapper && isHidden) {
-            Array.from(outerWrapper.children).forEach(function(subWrapper) {
-                const sibHeader  = subWrapper.firstElementChild;
-                const sibContent = sibHeader ? sibHeader.nextElementSibling : null;
-                if (sibHeader && sibContent && sibHeader !== header) {
-                    sibContent.style.display = 'none';
-                    sibHeader.style.background = '#f9f9f9';
-                }
-            });
+        if (isOpening) {
+            // Close all other sub-sections in this safety doc using class markers
+            const parentAccordionContent = header.closest('.accordion-content');
+            if (parentAccordionContent) {
+                parentAccordionContent.querySelectorAll('.sub-acc-hdr').forEach(function(h) {
+                    if (h === header) return;
+                    h.style.background = '#f9f9f9';
+                    var c = h.nextElementSibling;
+                    if (c) c.style.display = 'none';
+                });
+            }
         }
 
-        content.style.display = isHidden ? 'block' : 'none';
-        header.style.background = isHidden ? '#e8f0ff' : '#f9f9f9';
+        content.style.display = isOpening ? 'block' : 'none';
+        header.style.background = isOpening ? '#e8f0ff' : '#f9f9f9';
 
         // Initialize signature pads inside this sub-section when first opened
-        if (isHidden && !content.dataset.sigsInitialized) {
+        if (isOpening && !content.dataset.sigsInitialized) {
             content.dataset.sigsInitialized = 'true';
             setTimeout(() => {
-                const canvases = content.querySelectorAll('canvas');
-                canvases.forEach(canvas => {
-                    const canvasId = canvas.id;
-                    const docId = canvas.dataset.docId || canvasId.split('_')[0];
-                    initSignaturePad(canvasId, docId);
+                content.querySelectorAll('canvas').forEach(canvas => {
+                    initSignaturePad(canvas.id, canvas.dataset.docId || canvas.id.split('_')[0]);
                 });
             }, 50);
         }
