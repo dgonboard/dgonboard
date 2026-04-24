@@ -2014,14 +2014,14 @@
                                 <div class="signature-row">
                                     <div class="signature-label">Employee Signature</div>
                                     <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${sub.id}_empSig')">Clear Signature</button></div>
-                                    <canvas id="${sub.id}_empSig" style="width:100%;height:75px;"></canvas>
+                                    <canvas id="${sub.id}_empSig" data-doc-id="${doc.id}" style="width:100%;height:75px;"></canvas>
                                     <div class="signature-date"><label>Date:</label><input type="date" id="${sub.id}_empDate" onchange="updateDocumentStatus('${doc.id}')"></div>
                                 </div>
                                 ${doc.requiresParentSig ? `
                                 <div class="signature-row">
                                     <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></div>
                                     <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${sub.id}_guardianSig')">Clear Signature</button></div>
-                                    <canvas id="${sub.id}_guardianSig" style="width:100%;height:75px;"></canvas>
+                                    <canvas id="${sub.id}_guardianSig" data-doc-id="${doc.id}" style="width:100%;height:75px;"></canvas>
                                     <div class="signature-date"><label>Date:</label><input type="date" id="${sub.id}_guardianDate" onchange="updateDocumentStatus('${doc.id}')"></div>
                                 </div>` : ''}
                             </div>
@@ -2101,7 +2101,21 @@
 
     function toggleSubAccordion(header) {
         const content = header.nextElementSibling;
-        const isHidden = content.style.display === 'none';
+        const isHidden = content.style.display === 'none' || content.style.display === '';
+
+        // Close all sibling sub-sections before opening this one
+        const parentWrapper = header.parentElement;
+        if (parentWrapper && isHidden) {
+            Array.from(parentWrapper.children).forEach(function(sibling) {
+                const sibHeader  = sibling.firstElementChild;
+                const sibContent = sibHeader ? sibHeader.nextElementSibling : null;
+                if (sibHeader && sibContent && sibHeader !== header) {
+                    sibContent.style.display = 'none';
+                    sibHeader.style.background = '#f9f9f9';
+                }
+            });
+        }
+
         content.style.display = isHidden ? 'block' : 'none';
         header.style.background = isHidden ? '#e8f0ff' : '#f9f9f9';
 
@@ -2322,6 +2336,21 @@
             });
 
             doc.status = allSigned ? 'signed' : 'pending';
+
+            // Auto-collapse the currently open sub-section when it is fully signed
+            doc.subSections.forEach(sub => {
+                const empCanvas = document.getElementById(`${sub.id}_empSig`);
+                const empDate   = document.getElementById(`${sub.id}_empDate`);
+                const subSigned = empCanvas && empCanvas.dataset.signed === 'true' && empDate && empDate.value;
+                if (subSigned) {
+                    const subContent = empCanvas ? empCanvas.closest('div[style*="display"]') : null;
+                    if (subContent && subContent.style.display === 'block') {
+                        subContent.style.display = 'none';
+                        const subHeader = subContent.previousElementSibling;
+                        if (subHeader) subHeader.style.background = '#f9f9f9';
+                    }
+                }
+            });
         } else {
             const empCanvas = document.getElementById(`${docId}_empSig`);
             const empDate = document.getElementById(`${docId}_empDate`);
