@@ -1028,6 +1028,7 @@
     // See "Google-Apps-Script-Setup.html" for instructions
     // ══════════════════════════════════════════════════════════════
     const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx4AWRC2yvGdyD683ynkqBheuUJiQk1ddtJc3fpPepoyi_poo2-_xQVYLqv1mFS2r60xw/exec';
+    const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
     // ── Access Gate ──────────────────────────────────────────────
     // Change this code to whatever you share with new employees.
@@ -1999,7 +2000,7 @@
                         <div class="signature-label">Employee Signature</div>
                         <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_empSig')">Clear Signature</button></div>
                         <canvas id="${doc.id}_empSig" style="width:100%;height:75px;"></canvas>
-                        <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_empDate" onchange="updateDocumentStatus('${doc.id}')"></div>
+                        <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_empDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
                     </div>
                 </div>`;
         } else if (doc.isSafetyDoc) {
@@ -2009,7 +2010,7 @@
                     <div style="margin-bottom:20px;border:1px solid #ddd;border-radius:4px;overflow:hidden;">
                         <div class="sub-acc-hdr" style="background:#f9f9f9;padding:12px;cursor:pointer;font-weight:600;color:#FF6B00;display:flex;justify-content:space-between;align-items:center;" onclick="toggleSubAccordion(this)">
                             <span>${sub.title}</span>
-                            <span id="${sub.id}_badge" class="status-badge status-pending">Pending</span>
+                            <span id="${sub.id}_badge" style="background:#f39c12;color:#fff;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap;text-transform:uppercase;flex-shrink:0;">Pending</span>
                         </div>
                         <div class="sub-acc-cnt" style="display:none;padding:15px;background:white;">
                             <div class="document-text">${sub.content}</div>
@@ -2018,14 +2019,14 @@
                                     <div class="signature-label">Employee Signature</div>
                                     <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${sub.id}_empSig')">Clear Signature</button></div>
                                     <canvas id="${sub.id}_empSig" data-doc-id="${doc.id}" style="width:100%;height:75px;"></canvas>
-                                    <div class="signature-date"><label>Date:</label><input type="date" id="${sub.id}_empDate" onchange="updateDocumentStatus('${doc.id}')"></div>
+                                    <div class="signature-date"><label>Date:</label><input type="date" id="${sub.id}_empDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
                                 </div>
                                 ${doc.requiresParentSig ? `
                                 <div class="signature-row">
                                     <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></div>
                                     <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${sub.id}_guardianSig')">Clear Signature</button></div>
                                     <canvas id="${sub.id}_guardianSig" data-doc-id="${doc.id}" style="width:100%;height:75px;"></canvas>
-                                    <div class="signature-date"><label>Date:</label><input type="date" id="${sub.id}_guardianDate" onchange="updateDocumentStatus('${doc.id}')"></div>
+                                    <div class="signature-date"><label>Date:</label><input type="date" id="${sub.id}_guardianDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
                                 </div>` : ''}
                             </div>
                         </div>
@@ -2053,14 +2054,14 @@
                         <div class="signature-label">Employee Signature</div>
                         <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_empSig')">Clear Signature</button></div>
                         <canvas id="${doc.id}_empSig" style="width:100%;height:75px;"></canvas>
-                        <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_empDate" onchange="updateDocumentStatus('${doc.id}')"></div>
+                        <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_empDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
                     </div>
                     ${doc.requiresParentSig ? `
                     <div class="signature-row">
                         <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></div>
                         <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_guardianSig')">Clear Signature</button></div>
                         <canvas id="${doc.id}_guardianSig" style="width:100%;height:75px;"></canvas>
-                        <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_guardianDate" onchange="updateDocumentStatus('${doc.id}')"></div>
+                        <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_guardianDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
                     </div>` : ''}
                 </div>`;
         }
@@ -2274,14 +2275,20 @@
             if (!isDrawing) return;
             isDrawing = false;
             ctx.beginPath();
-            // Auto-fill the date field next to this canvas
-            const parentSigRow = canvas.closest('.signature-row') || canvas.parentElement;
-            if (parentSigRow) {
-                const dateInput = parentSigRow.querySelector('input[type="date"]');
-                if (dateInput && !dateInput.value) {
-                    dateInput.value = new Date().toISOString().split('T')[0];
-                }
+
+            // Auto-stamp today's date into the corresponding date field.
+            // Try by derived ID first (most reliable), then fall back to DOM search.
+            const derivedDateId = canvasId.replace('_empSig', '_empDate')
+                                           .replace('_guardianSig', '_guardianDate');
+            let dateInput = document.getElementById(derivedDateId);
+            if (!dateInput) {
+                const sigRow = canvas.closest('.signature-row') || canvas.parentElement;
+                if (sigRow) dateInput = sigRow.querySelector('input[type="date"]');
             }
+            if (dateInput) {
+                dateInput.value = todayStr;
+            }
+
             updateDocumentStatus(canvas.dataset.docId || docId);
         }
 
@@ -2346,7 +2353,8 @@
                 // Update the sub-section status badge
                 const badge = document.getElementById(`${sub.id}_badge`);
                 if (badge) {
-                    badge.className = 'status-badge ' + (subSigned ? 'status-signed' : 'status-pending');
+                    badge.style.background = subSigned ? '#27ae60' : '#f39c12';
+                    badge.style.color = '#fff';
                     badge.textContent = subSigned ? 'Signed' : 'Pending';
                 }
 
