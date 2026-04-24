@@ -1459,49 +1459,110 @@
         clearFieldErrors('step1Form');
         const errors = [];
 
-        // Only these three fields are required to proceed
+        // Restaurant number
         const restaurant = document.getElementById('restaurantNumber').value;
         if (!restaurant) {
             markFieldError('restaurantNumber', 'Please select your restaurant number.');
             errors.push('Restaurant number is required.');
         }
+
+        // Full name
         const fullName = document.getElementById('fullName').value.trim();
         if (!fullName) {
             markFieldError('fullName', 'Full name is required.');
             errors.push('Full name is required.');
         }
+
+        // Date of birth — all three parts required
+        const dobDayVal = (document.getElementById('dobDay').value || '').trim();
+        const dobMonthVal = (document.getElementById('dobMonth').value || '').trim();
+        const dobYearVal = (document.getElementById('dobYear').value || '').trim();
+        if (!dobDayVal || !dobMonthVal || !dobYearVal) {
+            ['dobDay','dobMonth','dobYear'].forEach(fid => {
+                const fel = document.getElementById(fid);
+                if (fel) fel.style.borderColor = '#e53e3e';
+            });
+            errors.push('Date of birth is required (day, month, and year).');
+        } else {
+            const dDay = parseInt(dobDayVal,10), dMon = parseInt(dobMonthVal,10), dYr = parseInt(dobYearVal,10);
+            if (dDay < 1 || dDay > 31 || dMon < 1 || dMon > 12 || dYr < 1900 || dYr > 2099) {
+                ['dobDay','dobMonth','dobYear'].forEach(fid => {
+                    const fel = document.getElementById(fid);
+                    if (fel) fel.style.borderColor = '#e53e3e';
+                });
+                errors.push('Date of birth contains an invalid day, month, or year.');
+            } else {
+                ['dobDay','dobMonth','dobYear'].forEach(fid => {
+                    const fel = document.getElementById(fid);
+                    if (fel) fel.style.borderColor = '#ddd';
+                });
+            }
+        }
+
+        // Cell phone
+        const cellPhone = document.getElementById('cellPhone').value.trim();
+        if (!cellPhone) {
+            markFieldError('cellPhone', 'Cell phone number is required.');
+            errors.push('Cell phone number is required.');
+        }
+
+        // Email
         const email = document.getElementById('email').value.trim();
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             markFieldError('email', 'A valid email address is required.');
             errors.push('A valid email address is required.');
         }
 
-        // If DOB is partially filled, validate the format (but don't require it)
-        const dobDayVal = (document.getElementById('dobDay').value || '').trim();
-        const dobMonthVal = (document.getElementById('dobMonth').value || '').trim();
-        const dobYearVal = (document.getElementById('dobYear').value || '').trim();
-        const dobPartiallyFilled = dobDayVal || dobMonthVal || dobYearVal;
-        if (dobPartiallyFilled) {
-            if (!dobDayVal || !dobMonthVal || !dobYearVal) {
-                ['dobDay','dobMonth','dobYear'].forEach(fid => {
-                    const fel = document.getElementById(fid);
-                    if (fel) fel.style.borderColor = '#e53e3e';
-                });
-                errors.push('Date of birth is partially filled — please complete all three fields or leave them all blank.');
-            } else {
-                const dDay = parseInt(dobDayVal,10), dMon = parseInt(dobMonthVal,10), dYr = parseInt(dobYearVal,10);
-                if (dDay < 1 || dDay > 31 || dMon < 1 || dMon > 12 || dYr < 1900 || dYr > 2099) {
-                    ['dobDay','dobMonth','dobYear'].forEach(fid => {
-                        const fel = document.getElementById(fid);
-                        if (fel) fel.style.borderColor = '#e53e3e';
-                    });
-                    errors.push('Date of birth contains an invalid day, month, or year.');
-                } else {
-                    ['dobDay','dobMonth','dobYear'].forEach(fid => {
-                        const fel = document.getElementById(fid);
-                        if (fel) fel.style.borderColor = '#ddd';
-                    });
-                }
+        // Address
+        const address = document.getElementById('address').value.trim();
+        if (!address) {
+            markFieldError('address', 'Street address is required.');
+            errors.push('Street address is required.');
+        }
+
+        // City
+        const city = document.getElementById('city').value.trim();
+        if (!city) {
+            markFieldError('city', 'City is required.');
+            errors.push('City is required.');
+        }
+
+        // Postal code
+        const postalCode = document.getElementById('postalCode').value.trim();
+        if (!postalCode) {
+            markFieldError('postalCode', 'Postal code is required.');
+            errors.push('Postal code is required.');
+        }
+
+        // SIN
+        const sin = document.getElementById('sin').value.trim();
+        if (!sin) {
+            markFieldError('sin', 'SIN is required.');
+            errors.push('SIN is required.');
+        }
+
+        // Legally entitled to work in Canada (radio)
+        const legallyEntitled = document.querySelector('input[name="legallyEntitled"]:checked');
+        if (!legallyEntitled) {
+            errors.push('Please indicate whether you are legally entitled to work in Canada.');
+        }
+
+        // Have you paid any fees to secure employment (radio)
+        const paidFees = document.querySelector('input[name="paidFees"]:checked');
+        if (!paidFees) {
+            errors.push('Please answer the question about paid fees.');
+        }
+
+        // Off-campus work authorization (radio)
+        const offCampus = document.querySelector('input[name="offCampus"]:checked');
+        if (!offCampus) {
+            errors.push('Please indicate your off-campus work status.');
+        } else if (offCampus.value === 'yes') {
+            // If off-campus, hours are required
+            const offCampusHours = document.getElementById('offCampusHours').value.trim();
+            if (!offCampusHours) {
+                markFieldError('offCampusHours', 'Please enter your authorized off-campus work hours.');
+                errors.push('Off-campus work hours are required.');
             }
         }
 
@@ -1515,30 +1576,49 @@
     }
 
     function validateStep2() {
-        // No hard blocks — all banking fields are optional.
-        // Only flag format errors if a field is partially/incorrectly filled.
         clearFieldErrors('step2Form');
-        const formatErrors = [];
+        const errors = [];
 
+        // Institution name
+        const instName = document.getElementById('institutionName').value.trim();
+        if (!instName) {
+            markFieldError('institutionName', 'Bank / financial institution name is required.');
+            errors.push('Bank / financial institution name is required.');
+        }
+
+        // Institution number (3 digits, required)
         const inst = document.getElementById('institutionNumber').value.trim();
-        if (inst && !/^\d{3}$/.test(inst)) {
+        if (!inst) {
+            markFieldError('institutionNumber', 'Institution number is required.');
+            errors.push('Institution number is required.');
+        } else if (!/^\d{3}$/.test(inst)) {
             markFieldError('institutionNumber', 'Institution number must be exactly 3 digits.');
-            formatErrors.push('Institution number must be exactly 3 digits.');
-        }
-        const trans = document.getElementById('transitNumber').value.trim();
-        if (trans && !/^\d{5}$/.test(trans)) {
-            markFieldError('transitNumber', 'Transit number must be exactly 5 digits.');
-            formatErrors.push('Transit number must be exactly 5 digits.');
-        }
-        const acct = document.getElementById('accountNumber').value.trim();
-        if (acct && !/^\d{7,12}$/.test(acct)) {
-            markFieldError('accountNumber', 'Account number must be between 7 and 12 digits.');
-            formatErrors.push('Account number must be between 7 and 12 digits.');
+            errors.push('Institution number must be exactly 3 digits.');
         }
 
-        if (formatErrors.length > 0) {
-            showErrorSummary('step2Form', formatErrors);
-            return false; // block only on format errors, not missing fields
+        // Transit number (5 digits, required)
+        const trans = document.getElementById('transitNumber').value.trim();
+        if (!trans) {
+            markFieldError('transitNumber', 'Transit number is required.');
+            errors.push('Transit number is required.');
+        } else if (!/^\d{5}$/.test(trans)) {
+            markFieldError('transitNumber', 'Transit number must be exactly 5 digits.');
+            errors.push('Transit number must be exactly 5 digits.');
+        }
+
+        // Account number (7-12 digits, required)
+        const acct = document.getElementById('accountNumber').value.trim();
+        if (!acct) {
+            markFieldError('accountNumber', 'Account number is required.');
+            errors.push('Account number is required.');
+        } else if (!/^\d{7,12}$/.test(acct)) {
+            markFieldError('accountNumber', 'Account number must be between 7 and 12 digits.');
+            errors.push('Account number must be between 7 and 12 digits.');
+        }
+
+        if (errors.length > 0) {
+            showErrorSummary('step2Form', errors);
+            return false;
         }
 
         saveStep2Data();
@@ -2039,10 +2119,34 @@
         }
     }
 
+    function closeAllAccordions(exceptHeader) {
+        const container = _docsContainer || document.getElementById('documentsContainer');
+        if (!container) return;
+        for (let i = 0; i < container.children.length; i++) {
+            const acc = container.children[i];
+            const h = acc.firstElementChild;
+            if (!h) continue;
+            const c = h.nextElementSibling;
+            if (!c) continue;
+            if (h === exceptHeader) continue;
+            h.classList.remove('active');
+            c.classList.remove('active');
+            c.style.display = 'none';
+        }
+    }
+
     function toggleAccordion(header) {
-        header.classList.toggle('active');
         const content = header.nextElementSibling;
+        const isOpening = !content.classList.contains('active');
+
+        // Close all other open accordions first
+        if (isOpening) {
+            closeAllAccordions(header);
+        }
+
+        header.classList.toggle('active');
         content.classList.toggle('active');
+        content.style.display = content.classList.contains('active') ? 'block' : 'none';
 
         if (!content.classList.contains('active')) return;
 
@@ -2232,6 +2336,41 @@
 
         updateSignedCount();
         updateNextButtonState();
+        refreshAccordionHeader(docId, doc);
+    }
+
+    function refreshAccordionHeader(docId, doc) {
+        const accordion = document.querySelector('[data-doc-id="' + docId + '"]');
+        if (!accordion) return;
+
+        const header = accordion.querySelector('.accordion-header');
+        const content = accordion.querySelector('.accordion-content');
+        const badge = header && header.querySelector('.status-badge');
+
+        // Determine whether this doc counts as "done"
+        const isDone = doc.status === 'signed' || (doc.readOnly && doc.status === 'read');
+
+        if (badge) {
+            // Remove all status classes and apply the correct one
+            badge.classList.remove('status-pending', 'status-read', 'status-signed', 'status-readonly');
+            if (doc.status === 'signed') {
+                badge.classList.add('status-signed');
+                badge.textContent = 'Signed';
+            } else if (doc.status === 'read') {
+                badge.classList.add('status-read');
+                badge.textContent = 'Read';
+            } else {
+                badge.classList.add('status-pending');
+                badge.textContent = 'Pending';
+            }
+        }
+
+        // Auto-collapse when the document is fully complete
+        if (isDone && header && content && content.classList.contains('active')) {
+            header.classList.remove('active');
+            content.classList.remove('active');
+            content.style.display = 'none';
+        }
     }
 
     function updateSignedCount() {
@@ -2386,39 +2525,83 @@
     }
 
     async function submitForm() {
-        // Collect all incomplete items across all steps for a pre-submit warning
-        const allWarnings = [];
+        // Hard block — all fields must be complete before submission
+        const allErrors = [];
 
-        // Step 1 checks — only the 3 required fields
+        // Step 1 checks
         if (!document.getElementById('restaurantNumber').value)
-            allWarnings.push('Restaurant number is missing');
+            allErrors.push('Restaurant number is missing');
         if (!(document.getElementById('fullName').value || '').trim())
-            allWarnings.push('Full name is missing');
+            allErrors.push('Full name is missing');
+        const dobDay = (document.getElementById('dobDay').value || '').trim();
+        const dobMonth = (document.getElementById('dobMonth').value || '').trim();
+        const dobYear = (document.getElementById('dobYear').value || '').trim();
+        if (!dobDay || !dobMonth || !dobYear)
+            allErrors.push('Date of birth is incomplete');
+        if (!(document.getElementById('cellPhone').value || '').trim())
+            allErrors.push('Cell phone number is missing');
         const emailVal = (document.getElementById('email').value || '').trim();
         if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal))
-            allWarnings.push('A valid email address is missing');
+            allErrors.push('A valid email address is missing');
+        if (!(document.getElementById('address').value || '').trim())
+            allErrors.push('Street address is missing');
+        if (!(document.getElementById('city').value || '').trim())
+            allErrors.push('City is missing');
+        if (!(document.getElementById('postalCode').value || '').trim())
+            allErrors.push('Postal code is missing');
+        if (!(document.getElementById('sin').value || '').trim())
+            allErrors.push('SIN is missing');
+        if (!document.querySelector('input[name="legallyEntitled"]:checked'))
+            allErrors.push('Legal work entitlement question is unanswered');
+        if (!document.querySelector('input[name="paidFees"]:checked'))
+            allErrors.push('Paid fees question is unanswered');
+        if (!document.querySelector('input[name="offCampus"]:checked'))
+            allErrors.push('Off-campus work status is unanswered');
 
         // Step 2 checks
-        const step2Fields = [
-            { id: 'institutionName', label: 'Bank name' },
-            { id: 'institutionNumber', label: 'Institution number' },
-            { id: 'transitNumber', label: 'Transit number' },
-            { id: 'accountNumber', label: 'Account number' },
-        ];
-        step2Fields.forEach(f => {
-            const el = document.getElementById(f.id);
-            if (!el || !el.value.trim()) allWarnings.push(f.label + ' is missing');
-        });
+        if (!(document.getElementById('institutionName').value || '').trim())
+            allErrors.push('Bank / institution name is missing');
+        if (!(document.getElementById('institutionNumber').value || '').trim())
+            allErrors.push('Institution number is missing');
+        if (!(document.getElementById('transitNumber').value || '').trim())
+            allErrors.push('Transit number is missing');
+        if (!(document.getElementById('accountNumber').value || '').trim())
+            allErrors.push('Account number is missing');
 
         // Step 3 checks
         const missingDocs = getMissingDocuments();
-        missingDocs.forEach(d => allWarnings.push(d));
+        missingDocs.forEach(d => allErrors.push(d));
 
-        if (allWarnings.length > 0) {
-            showWarningModal('Submit with Incomplete Information?', allWarnings, () => _doSubmit());
+        if (allErrors.length > 0) {
+            showBlockingErrorModal('Cannot Submit — Missing Required Information', allErrors);
             return;
         }
         _doSubmit();
+    }
+
+    function showBlockingErrorModal(title, items) {
+        const existing = document.getElementById('blockingErrorModal');
+        if (existing) existing.remove();
+        const modal = document.createElement('div');
+        modal.id = 'blockingErrorModal';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+        modal.innerHTML = `
+            <div style="background:#fff;border-radius:14px;padding:24px;max-width:520px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.3);max-height:85vh;overflow-y:auto;">
+                <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+                    <div style="width:46px;height:46px;min-width:46px;background:#FEE2E2;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;">🚫</div>
+                    <h3 style="margin:0;color:#991B1B;font-size:18px;line-height:1.3;">${title}</h3>
+                </div>
+                <p style="color:#555;font-size:14px;margin:0 0 14px;">Please go back and complete all of the following before submitting:</p>
+                <ul style="margin:0 0 20px;padding-left:22px;color:#444;font-size:14px;line-height:1.9;">
+                    ${items.map(i => `<li>${i}</li>`).join('')}
+                </ul>
+                <button onclick="document.getElementById('blockingErrorModal').remove();document.body.style.overflow='';"
+                    style="width:100%;padding:12px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">
+                    Go Back &amp; Complete Form
+                </button>
+            </div>`;
+        document.body.style.overflow = 'hidden';
+        document.body.appendChild(modal);
     }
 
     async function _doSubmit() {
