@@ -1334,10 +1334,7 @@
     let submissionInProgress = false;
 
     function goToStep(step) {
-        if (step > currentStep && !validateCurrentStep()) {
-            return;
-        }
-
+        // No validation blocks on navigation — only the Submit button enforces completion.
         // Auto-save current step data before leaving (no validation — just capture)
         if (currentStep === 1) autoSaveStep1();
         if (currentStep === 2) autoSaveStep2();
