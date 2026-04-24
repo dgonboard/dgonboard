@@ -2007,7 +2007,10 @@
             doc.subSections.forEach(sub => {
                 html += `
                     <div style="margin-bottom:20px;border:1px solid #ddd;border-radius:4px;overflow:hidden;">
-                        <div class="sub-acc-hdr" style="background:#f9f9f9;padding:12px;cursor:pointer;font-weight:600;color:#FF6B00;" onclick="toggleSubAccordion(this)">${sub.title}</div>
+                        <div class="sub-acc-hdr" style="background:#f9f9f9;padding:12px;cursor:pointer;font-weight:600;color:#FF6B00;display:flex;justify-content:space-between;align-items:center;" onclick="toggleSubAccordion(this)">
+                            <span>${sub.title}</span>
+                            <span id="${sub.id}_badge" class="status-badge status-pending">Pending</span>
+                        </div>
                         <div class="sub-acc-cnt" style="display:none;padding:15px;background:white;">
                             <div class="document-text">${sub.content}</div>
                             <div class="signature-section">
@@ -2334,13 +2337,22 @@
 
             doc.status = allSigned ? 'signed' : 'pending';
 
-            // Auto-collapse the currently open sub-section when it is fully signed
+            // Update each sub-section badge and auto-collapse when signed
             doc.subSections.forEach(sub => {
                 const empCanvas = document.getElementById(`${sub.id}_empSig`);
                 const empDate   = document.getElementById(`${sub.id}_empDate`);
                 const subSigned = empCanvas && empCanvas.dataset.signed === 'true' && empDate && empDate.value;
+
+                // Update the sub-section status badge
+                const badge = document.getElementById(`${sub.id}_badge`);
+                if (badge) {
+                    badge.className = 'status-badge ' + (subSigned ? 'status-signed' : 'status-pending');
+                    badge.textContent = subSigned ? 'Signed' : 'Pending';
+                }
+
+                // Auto-collapse once signed
                 if (subSigned) {
-                    const subContent = empCanvas ? empCanvas.closest('div[style*="display"]') : null;
+                    const subContent = empCanvas ? empCanvas.closest('.sub-acc-cnt') : null;
                     if (subContent && subContent.style.display === 'block') {
                         subContent.style.display = 'none';
                         const subHeader = subContent.previousElementSibling;
