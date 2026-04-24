@@ -1691,40 +1691,21 @@
     }
 
     function validateAndNextStep(step) {
+        // Save data as the employee moves forward, but never block navigation.
+        // The only hard block is at final submission.
         if (step === 1) {
-            if (validateStep1()) {
-                goToStep(2);
-            } else {
-                // Fields are highlighted; show modal to let employee continue anyway
-                const summary = document.querySelector('#step1Form .step-error-summary');
-                const items = summary
-                    ? Array.from(summary.querySelectorAll('li')).map(li => li.textContent)
-                    : ['Some required fields are incomplete.'];
-                showWarningModal('Missing Personal Information', items, () => {
-                    clearFieldErrors('step1Form');
-                    const s = document.querySelector('#step1Form .step-error-summary');
-                    if (s) s.remove();
-                    goToStep(2);
-                });
-            }
+            saveStep1Data();
+            clearFieldErrors('step1Form');
+            const s = document.querySelector('#step1Form .step-error-summary');
+            if (s) s.remove();
+            goToStep(2);
         } else if (step === 2) {
-            if (validateStep2()) {
-                goToStep(3);
-            } else {
-                const summary = document.querySelector('#step2Form .step-error-summary');
-                const items = summary
-                    ? Array.from(summary.querySelectorAll('li')).map(li => li.textContent)
-                    : ['Some banking fields are incomplete.'];
-                showWarningModal('Missing Banking Information', items, () => {
-                    clearFieldErrors('step2Form');
-                    const s = document.querySelector('#step2Form .step-error-summary');
-                    if (s) s.remove();
-                    goToStep(3);
-                });
-            }
+            saveStep2Data();
+            clearFieldErrors('step2Form');
+            const s = document.querySelector('#step2Form .step-error-summary');
+            if (s) s.remove();
+            goToStep(3);
         } else if (step === 3) {
-            // No hard block on documents — employee can complete/resign later.
-            // Incomplete items are flagged only at final submission.
             goToStep(4);
         }
     }
