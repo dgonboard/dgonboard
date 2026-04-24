@@ -2103,11 +2103,13 @@
         const content = header.nextElementSibling;
         const isHidden = content.style.display === 'none' || content.style.display === '';
 
-        // Close all sibling sub-sections before opening this one
-        const parentWrapper = header.parentElement;
-        if (parentWrapper && isHidden) {
-            Array.from(parentWrapper.children).forEach(function(sibling) {
-                const sibHeader  = sibling.firstElementChild;
+        // Close all sibling sub-sections before opening this one.
+        // header.parentElement = the wrapper div for THIS sub-section
+        // header.parentElement.parentElement = the outer wrapper holding ALL sub-sections
+        const outerWrapper = header.parentElement && header.parentElement.parentElement;
+        if (outerWrapper && isHidden) {
+            Array.from(outerWrapper.children).forEach(function(subWrapper) {
+                const sibHeader  = subWrapper.firstElementChild;
                 const sibContent = sibHeader ? sibHeader.nextElementSibling : null;
                 if (sibHeader && sibContent && sibHeader !== header) {
                     sibContent.style.display = 'none';
