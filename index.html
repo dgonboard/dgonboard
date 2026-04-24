@@ -2333,13 +2333,18 @@
                     badge.textContent = subSigned ? 'Signed' : 'Pending';
                 }
 
-                // Auto-collapse once signed
+                // Show "Done" button once signed (instead of auto-collapsing)
                 if (subSigned) {
                     const subContent = empCanvas ? empCanvas.closest('.sub-acc-cnt') : null;
-                    if (subContent && subContent.style.display === 'block') {
-                        subContent.style.display = 'none';
-                        const subHeader = subContent.previousElementSibling;
-                        if (subHeader) subHeader.style.background = '#f9f9f9';
+                    if (subContent && subContent.style.display === 'block' && !subContent.querySelector('.section-done-btn')) {
+                        const btn = document.createElement('button');
+                        btn.className = 'section-done-btn';
+                        btn.style.cssText = 'margin-top:24px;width:100%;padding:14px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:0.3px;';
+                        btn.textContent = '✓ Done — Next Sub-Section';
+                        const sid = sub.id;
+                        btn.onclick = function() { collapseSubSection(sid); };
+                        subContent.appendChild(btn);
+                        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     }
                 }
             });
@@ -2383,12 +2388,37 @@
             }
         }
 
-        // Auto-collapse when the document is fully complete
-        if (isDone && header && content && content.classList.contains('active')) {
-            header.classList.remove('active');
-            content.classList.remove('active');
-            content.style.display = 'none';
+        // Show "Done" button when fully complete (instead of auto-collapsing)
+        if (isDone && content && content.classList.contains('active')) {
+            if (!content.querySelector('.section-done-btn')) {
+                const btn = document.createElement('button');
+                btn.className = 'section-done-btn';
+                btn.style.cssText = 'margin-top:24px;width:100%;padding:14px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:0.3px;';
+                btn.textContent = '✓ Done — Collapse Section';
+                btn.onclick = function() { collapseMainAccordion(docId); };
+                content.appendChild(btn);
+                btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
         }
+    }
+
+    function collapseMainAccordion(docId) {
+        const accordion = document.querySelector('[data-doc-id="' + docId + '"]');
+        if (!accordion) return;
+        const header = accordion.querySelector('.accordion-header');
+        const content = accordion.querySelector('.accordion-content');
+        if (header) header.classList.remove('active');
+        if (content) { content.classList.remove('active'); content.style.display = 'none'; }
+    }
+
+    function collapseSubSection(subId) {
+        const canvas = document.getElementById(subId + '_empSig');
+        if (!canvas) return;
+        const subContent = canvas.closest('.sub-acc-cnt');
+        if (!subContent) return;
+        subContent.style.display = 'none';
+        const subHeader = subContent.previousElementSibling;
+        if (subHeader) subHeader.style.background = '#f9f9f9';
     }
 
     function updateSignedCount() {
