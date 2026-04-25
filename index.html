@@ -2660,6 +2660,53 @@
         document.body.appendChild(modal);
     }
 
+    function generateSummaryHTML() {
+        const s1 = formData.step1 || {};
+        const s2 = formData.step2 || {};
+        const sinMasked = s1.sin ? s1.sin.slice(0,3) + '-' + s1.sin.slice(3,6) + '-***' : 'Not provided';
+        const acctMasked = s2.accountNumber ? '****' + s2.accountNumber.slice(-4) : 'Not provided';
+        const signedCount = documents.filter(d => d.status === 'signed' || (d.readOnly && d.status === 'read')).length;
+        const docRows = documents.map(d => {
+            const done = d.status === 'signed' || (d.readOnly && d.status === 'read');
+            const color = done ? '#27ae60' : '#f39c12';
+            const label = d.status === 'signed' ? 'SIGNED' : (d.status === 'read' ? 'ACKNOWLEDGED' : 'PENDING');
+            return '<tr><td style="padding:6px 8px;border-bottom:1px solid #eee;">' + (d.title || d.section) + '</td>'
+                 + '<td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center;">'
+                 + '<span style="background:' + color + ';color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;">' + label + '</span></td></tr>';
+        }).join('');
+        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'
+            + 'body{font-family:Arial,sans-serif;max-width:700px;margin:40px auto;color:#333;font-size:13px;}'
+            + 'h1{color:#1a3a52;font-size:20px;border-bottom:3px solid #FF6B00;padding-bottom:10px;margin-bottom:20px;}'
+            + 'h2{color:#FF6B00;font-size:14px;margin:24px 0 10px;border-bottom:1px solid #ddd;padding-bottom:4px;}'
+            + '.hdr{text-align:center;margin-bottom:30px;border-bottom:2px solid #1a3a52;padding-bottom:16px;}'
+            + 'table{width:100%;border-collapse:collapse;margin-bottom:10px;}'
+            + 'td{padding:7px 10px;vertical-align:top;}'
+            + '.lbl{font-weight:bold;color:#555;width:40%;}'
+            + '.ftr{margin-top:30px;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:10px;text-align:center;}'
+            + '</style></head><body>'
+            + '<div class="hdr"><h2>DHANOA GROUP - Store ' + (s1.restaurantNumber || '') + '</h2>'
+            + '<p>Employee Onboarding Summary - ' + new Date().toLocaleDateString('en-CA') + '</p></div>'
+            + '<h1>Employee Onboarding Summary</h1>'
+            + '<h2>Personal Information</h2><table>'
+            + '<tr><td class="lbl">Full Name</td><td>' + (s1.fullName || '') + '</td></tr>'
+            + '<tr><td class="lbl">Date of Birth</td><td>' + (s1.dateOfBirth || '') + '</td></tr>'
+            + '<tr><td class="lbl">Cell Phone</td><td>' + (s1.cellPhone || '') + '</td></tr>'
+            + '<tr><td class="lbl">Email</td><td>' + (s1.email || '') + '</td></tr>'
+            + '<tr><td class="lbl">Address</td><td>' + (s1.address || '') + ', ' + (s1.city || '') + ' ' + (s1.postalCode || '') + '</td></tr>'
+            + '<tr><td class="lbl">SIN (Masked)</td><td>' + sinMasked + '</td></tr>'
+            + '<tr><td class="lbl">Legally Entitled</td><td>' + (s1.legallyEntitled || '') + '</td></tr>'
+            + '</table><h2>Banking Information</h2><table>'
+            + '<tr><td class="lbl">Institution</td><td>' + (s2.institutionName || '') + '</td></tr>'
+            + '<tr><td class="lbl">Institution #</td><td>' + (s2.institutionNumber || '') + '</td></tr>'
+            + '<tr><td class="lbl">Transit #</td><td>' + (s2.transitNumber || '') + '</td></tr>'
+            + '<tr><td class="lbl">Account # (Masked)</td><td>' + acctMasked + '</td></tr>'
+            + '</table><h2>Documents (' + signedCount + ' of ' + documents.length + ' completed)</h2>'
+            + '<table><tr style="background:#f5f5f5;"><th style="padding:6px 8px;text-align:left;">Document</th><th style="padding:6px 8px;">Status</th></tr>'
+            + docRows + '</table>'
+            + '<div class="ftr">Submitted: ' + new Date().toISOString() + ' | Dhanoa Group Employee Onboarding</div>'
+            + '</body></html>';
+    }
+
     async function _doSubmit() {
         const submitBtn = document.querySelector('.step-content[data-step="4"] .btn-primary');
         if (submitBtn) {
@@ -2745,6 +2792,13 @@
                 data: signedTD1Base64
             },
             td1UploadFile: formData.td1UploadFile || null,
+            summaryFile: (function() {
+                try {
+                    const html = generateSummaryHTML();
+                    const name = (formData.step1.fullName || 'Employee').replace(/\s+/g, '_');
+                    return { fileName: 'Onboarding Summary - ' + name + '.html', mimeType: 'text/html', data: btoa(unescape(encodeURIComponent(html))) };
+                } catch(e) { return null; }
+            })(),
             submittedAt: new Date().toISOString()
         };
 
