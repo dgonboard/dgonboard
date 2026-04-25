@@ -1027,7 +1027,7 @@
     // GOOGLE APPS SCRIPT URL — Paste your deployed web app URL here
     // See "Google-Apps-Script-Setup.html" for instructions
     // ══════════════════════════════════════════════════════════════
-    const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx4AWRC2yvGdyD683ynkqBheuUJiQk1ddtJc3fpPepoyi_poo2-_xQVYLqv1mFS2r60xw/exec';
+    const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx8-ThPc2cWDVWPgWG6USD46Ix0hwOjW2fD-5WEAVkn1zjVtsLqvdmZbxicFJkGXAa97Q/exec';
     const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
     // ── Access Gate ──────────────────────────────────────────────
@@ -1930,6 +1930,21 @@
         });
     }
 
+    function readTD1UploadFile() {
+        const input = document.getElementById('doc14_uploadFile');
+        const file = input && input.files && input.files[0];
+        if (!file) { formData.td1UploadFile = null; return Promise.resolve(); }
+        return new Promise(function(resolve) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                formData.td1UploadFile = { fileName: file.name, mimeType: file.type, data: e.target.result.split(',')[1] };
+                resolve();
+            };
+            reader.onerror = function() { formData.td1UploadFile = null; resolve(); };
+            reader.readAsDataURL(file);
+        });
+    }
+
     function updateProgressBar(step) {
         document.querySelectorAll('.progress-step').forEach((s, idx) => {
             s.classList.remove('active', 'completed', 'disabled');
@@ -1968,6 +1983,12 @@
                         <a id="${doc.id}_pdfDownload" download="TD1-Personal-Tax-Credits-Return-2021.pdf" style="display:inline-block;padding:8px 16px;background:#FF6B00;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600;cursor:pointer;">Download TD1 PDF</a>
                         <span style="font-size:12px;color:#999;align-self:center;">Print this form, fill it out, and submit the completed copy to your employer.</span>
                     </div>
+                </div>
+                <div style="margin-top:20px;padding:16px;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;">
+                    <p style="font-size:14px;font-weight:600;color:#333;margin-bottom:8px;">📎 Upload Your Completed TD1 (Optional)</p>
+                    <p style="font-size:13px;color:#666;margin-bottom:12px;">If you have filled out and scanned/photographed your completed TD1 form, you can upload it here. Accepted formats: PDF, JPG, PNG.</p>
+                    <input type="file" id="${doc.id}_uploadFile" accept=".pdf,.jpg,.jpeg,.png" style="font-size:13px;width:100%;">
+                    <p style="font-size:11px;color:#999;margin-top:6px;">This file will be saved to your employee folder in Google Drive.</p>
                 </div>
                 <div class="signature-section" style="margin-top:20px;">
                     <p style="font-size:14px;color:#444;margin-bottom:12px;"><strong>Certification:</strong> I certify that I have reviewed, completed, and submitted the TD1 Personal Tax Credits Return form.</p>
@@ -2651,6 +2672,7 @@
         await readWorkPermitFile();
         await readSINCardFile();
         await readVoidChequeFile();
+        await readTD1UploadFile();
 
         // Generate the signed TD1 PDF with signature overlaid
         const signedTD1Base64 = await generateSignedTD1PDF();
@@ -2722,6 +2744,7 @@
                 mimeType: 'application/pdf',
                 data: signedTD1Base64
             },
+            td1UploadFile: formData.td1UploadFile || null,
             submittedAt: new Date().toISOString()
         };
 
