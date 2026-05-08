@@ -786,7 +786,7 @@
                     <input type="text" id="fullName" name="fullName" required placeholder="Must match name on SIN">
                 </div>
                 <div class="form-group" id="dobGroup">
-                    <label>Date of Birth</label>
+                    <label>Date of Birth *</label>
                     <div style="display:flex; gap:10px; align-items:flex-start;">
                         <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
                             <input type="number" id="dobDay" name="dobDay" placeholder="DD" min="1" max="31"
@@ -812,7 +812,7 @@
 
             <div class="field-row">
                 <div class="form-group">
-                    <label for="cellPhone">Cell Phone</label>
+                    <label for="cellPhone">Cell Phone *</label>
                     <input type="tel" id="cellPhone" name="cellPhone" placeholder="(123) 456-7890">
                 </div>
                 <div class="form-group">
@@ -822,23 +822,23 @@
             </div>
 
             <div class="form-group">
-                <label for="address">Street Address</label>
+                <label for="address">Street Address *</label>
                 <input type="text" id="address" name="address">
             </div>
 
             <div class="field-row">
                 <div class="form-group">
-                    <label for="city">City</label>
+                    <label for="city">City *</label>
                     <input type="text" id="city" name="city">
                 </div>
                 <div class="form-group">
-                    <label for="postalCode">Postal Code</label>
+                    <label for="postalCode">Postal Code *</label>
                     <input type="text" id="postalCode" name="postalCode" placeholder="A1A 1A1">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="sin">Social Insurance Number (SIN)</label>
+                <label for="sin">Social Insurance Number (SIN) *</label>
                 <div class="password-toggle">
                     <input type="password" id="sin" name="sin" placeholder="XXX-XXX-XXX">
                     <button type="button" class="toggle-btn" onclick="toggleSINVisibility(event)">Show</button>
@@ -846,7 +846,7 @@
             </div>
 
             <div class="form-group">
-                <label for="sinCardFile">Photo of SIN Card</label>
+                <label for="sinCardFile">Photo of SIN Card *</label>
                 <input type="file" id="sinCardFile" name="sinCardFile" accept=".jpg,.jpeg,.png,.pdf"
                     style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:14px; background:#fff;"
                     onchange="autoSaveStep1()">
@@ -952,28 +952,28 @@
 
         <form id="step2Form" novalidate>
             <div class="form-group">
-                <label for="institutionName">Financial Institution Name <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></label>
+                <label for="institutionName">Financial Institution Name *</label>
                 <input type="text" id="institutionName" name="institutionName" placeholder="e.g., Royal Bank of Canada">
             </div>
 
             <div class="field-row">
                 <div class="form-group">
-                    <label for="institutionNumber">Institution Number (3-digit) <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></label>
+                    <label for="institutionNumber">Institution Number (3-digit) *</label>
                     <input type="text" id="institutionNumber" name="institutionNumber" maxlength="3" placeholder="012">
                 </div>
                 <div class="form-group">
-                    <label for="transitNumber">Transit Number (5-digit) <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></label>
+                    <label for="transitNumber">Transit Number (5-digit) *</label>
                     <input type="text" id="transitNumber" name="transitNumber" maxlength="5" placeholder="12345">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="accountNumber">Account Number (7-12 digits) <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></label>
+                <label for="accountNumber">Account Number (7-12 digits) *</label>
                 <input type="text" id="accountNumber" name="accountNumber" maxlength="12" placeholder="123456789">
             </div>
 
             <div class="form-group">
-                <label for="voidChequeFile">Void Cheque or Direct Deposit Slip <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></label>
+                <label for="voidChequeFile">Void Cheque or Direct Deposit Slip *</label>
                 <input type="file" id="voidChequeFile" name="voidChequeFile" accept=".jpg,.jpeg,.png,.pdf"
                     style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; font-size:14px; background:#fff;"
                     onchange="autoSaveStep2()">
