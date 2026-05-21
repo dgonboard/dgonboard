@@ -1050,18 +1050,23 @@
     // ─────────────────────────────────────────────────────────────
 
     // ── Utilities ────────────────────────────────────────────────
-    // isMinor: returns true if the entered date of birth is under 18 years old
+    // isMinor: returns true if the entered date of birth is under 18 years old.
+    // formData.step1.dateOfBirth is stored as "DD/MM/YYYY" by autoSaveStep1().
     function isMinor() {
         const step1 = formData.step1 || {};
-        const day   = parseInt(step1.dobDay);
-        const month = parseInt(step1.dobMonth);
-        const year  = parseInt(step1.dobYear);
+        const dob = step1.dateOfBirth || '';   // "DD/MM/YYYY"
+        if (!dob) return false;
+        const parts = dob.split('/');
+        if (parts.length !== 3) return false;
+        const day   = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const year  = parseInt(parts[2], 10);
         if (!day || !month || !year || year < 1900) return false;
-        const dob   = new Date(year, month - 1, day);
-        const today = new Date();
-        let age = today.getFullYear() - dob.getFullYear();
-        const m = today.getMonth() - dob.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+        const dobDate = new Date(year, month - 1, day);
+        const today   = new Date();
+        let age = today.getFullYear() - dobDate.getFullYear();
+        const m = today.getMonth() - dobDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) age--;
         return age < 18;
     }
 
