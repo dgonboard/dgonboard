@@ -1707,6 +1707,7 @@
 
     function getMissingDocuments() {
         const missing = [];
+        const minor = isMinor();
         documents.forEach(doc => {
             if (doc.readOnly) {
                 const checkbox = document.getElementById(`${doc.id}_acknowledged`);
@@ -1714,12 +1715,29 @@
             } else if (doc.isSafetyDoc) {
                 const unsignedSubs = doc.subSections.filter(sub => {
                     const canvas = document.getElementById(`${sub.id}_empSig`);
-                    return !canvas || canvas.dataset.signed !== 'true';
+                    if (!canvas || canvas.dataset.signed !== 'true') return true;
+                    // For minors, guardian sig is also required
+                    if (doc.requiresParentSig && minor) {
+                        const gCanvas = document.getElementById(`${sub.id}_guardianSig`);
+                        if (!gCanvas || gCanvas.dataset.signed !== 'true') return true;
+                    }
+                    return false;
                 });
-                if (unsignedSubs.length > 0) missing.push(`${doc.title} — unsigned`);
+                if (unsignedSubs.length > 0) {
+                    const reason = (doc.requiresParentSig && minor) ? 'parent/guardian signature required' : 'unsigned';
+                    missing.push(`${doc.title} — ${reason}`);
+                }
             } else {
                 const canvas = document.getElementById(`${doc.id}_empSig`);
-                if (!canvas || canvas.dataset.signed !== 'true') missing.push(`${doc.title} — unsigned`);
+                if (!canvas || canvas.dataset.signed !== 'true') {
+                    missing.push(`${doc.title} — unsigned`);
+                } else if (doc.requiresParentSig && minor) {
+                    // Employee has signed but guardian sig is also required for minors
+                    const gCanvas = document.getElementById(`${doc.id}_guardianSig`);
+                    if (!gCanvas || gCanvas.dataset.signed !== 'true') {
+                        missing.push(`${doc.title} — parent/guardian signature required`);
+                    }
+                }
             }
         });
         return missing;
