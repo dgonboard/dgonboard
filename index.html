@@ -990,7 +990,7 @@
     <!-- STEP 3: DOCUMENTS (Read & Sign) -->
     <div class="step-content" data-step="3">
         <h2>Documents - Read & Sign</h2>
-        <p style="color: #666; margin: 15px 0 20px 0;">Please read each document carefully and provide your signature where required. Documents signed: <strong><span id="signedCount">0</span>/<span id="totalDocCount">19</span></strong></p>
+        <p style="color: #666; margin: 15px 0 20px 0;">Please read each document carefully and provide your signature where required. Documents signed: <strong><span id="signedCount">0</span>/<span id="totalDocCount">21</span></strong></p>
 
         <div id="docsTodoPanel" style="display:none;"></div>
 
@@ -1050,6 +1050,21 @@
     // ─────────────────────────────────────────────────────────────
 
     // ── Utilities ────────────────────────────────────────────────
+    // isMinor: returns true if the entered date of birth is under 18 years old
+    function isMinor() {
+        const step1 = formData.step1 || {};
+        const day   = parseInt(step1.dobDay);
+        const month = parseInt(step1.dobMonth);
+        const year  = parseInt(step1.dobYear);
+        if (!day || !month || !year || year < 1900) return false;
+        const dob   = new Date(year, month - 1, day);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+        return age < 18;
+    }
+
     // debounce: returns a fn that waits `ms` ms after last call before firing
     function debounce(fn, ms) {
         let timer;
@@ -1299,6 +1314,24 @@
             section: 'DHG 7',
             status: 'pending',
             content: 'A&W ACCESSIBLE WORKPLACE POLICY\n\nDhanoa Group is committed to providing an accessible workplace for all employees and guests.\n\nGENERAL ACCESSIBILITY\nWe are committed to identifying, removing and preventing barriers to accessibility. All staff will receive training on our accessibility policies and procedures.\n\nINFORMATION AND COMMUNICATIONS\nWe provide information in accessible formats. Employees can request accommodations for information needs including documents in large print, audio format, or electronic text.\n\nEMPLOYMENT\nWe are committed to accessible hiring practices and will accommodate applicants and employees with disabilities throughout the employment process.\n\nDESIGN OF PUBLIC SPACES\nOur locations are designed to be accessible to all. We maintain accessible parking, entry points, washrooms, and workspaces.\n\nMODIFICATIONS\nEmployees requiring accessibility modifications are encouraged to request them. We will work with employees to identify and implement reasonable accommodations.\n\nFor questions about accessibility, please contact management.\n\nI acknowledge that I have read and understand the A&W Accessible Workplace Policy.'
+        },
+        {
+            id: 'doc19',
+            title: 'Overnighters Orientation',
+            section: 'DHG 8',
+            status: 'pending',
+            content: 'OVERNIGHTER\'S ORIENTATION\n\n1. Overnight Safety\na. Do not go outside for any reason between 11pm – 5am.\nb. When going outside before 11pm after dark, always use the buddy system.\nc. To provide food to a \'parked\' car, please provide them with the exact time to drive back around the drive thru.\nd. Lock all doors that are not for guest entry. Ensure the door to the prep kitchen is also locked. When not in use, also lock the DT window.\ne. In case of an unfortunate incident of robbery or violence, always cooperate with the assailant – do not try to be brave. Lock the doors immediately once they have left the premises.\nf. Never be afraid to call the police – your safety is the most precious and important thing.\n\n2. Breaks\na. To be taken alone, one at a time.\nb. Breaks must be taken within the timing rules for your store.\n\n3. Duties\na. You are to follow the overnight checklist duties that are posted in the store.\nb. No other duties OTHER THAN CLEANING should be done unless specified by management.\nc. All duties must be done as per the same standards as daytime.\nd. At no point may you sleep or take a break longer than 30 mins for every 5 hours you work unless due to sickness or unforeseen circumstances. If you are taking a break longer than 30 mins, you must clock out for the entire duration of the break and report it to the morning MOD.\ne. Once all regular overnight duties are complete, you should do extra cleaning.\n\n4. Meals\nIt is your responsibility to order your food with the closing MOD before they leave. Any food eaten that was not punched in and paid for at that time will be considered theft. In unforeseen circumstances, if you need to eat something that was not rung in by your closing MOD, you must punch it in and pay for it at full price before making it and eating it.\n\n5. Guest Service\na. All orders over 1 combo must be completed by both the front and kitchen overnighter together. The only exception will be if one is on break and the remaining person is cross-trained.\nb. If breaks are being done at the times mentioned above, there should be very minimal instances where only 1 person is completing an order.\nc. Onion rings should only be done during approved time frames so that at least 2 employees are available to help prepare guests\' orders.\n\n6. Food Safety\na. Overnighters are to complete all tasks by the same standards as daytime staff. This especially applies to protocols affecting food safety such as:\ni. Handwashing\nii. Sanitizing (cloths and dishes)\niii. Dishwashing (3 sink method)\niv. Cooking procedures (timers, proper baskets etc.)\n\nI acknowledge that a management team member has reviewed the above policies with me and that I have read the above policies and agree to comply.',
+            requiresParentSig: true,
+            formFields: []
+        },
+        {
+            id: 'doc20',
+            title: 'Discarding Food, Waste Items and Grease',
+            section: 'DHG 9',
+            status: 'pending',
+            content: 'DISCARDING FOOD, WASTE ITEMS AND GREASE\n\nWe would like to clarify that no food, waste items or grease should be dumped in sink drains, floor drains or exterior drains. Only water, wastewater (dirty water from washing dishes, mopping floors, cleaning exterior grounds etc.) and beverages (pop, coffee etc.) can go down drains.\n\nPlease ensure we are all disposing of items as listed below:\n\nA. Liquid food items which must be discarded with regular restaurant garbage:\n• Gravy\n• Batter\n• Other liquid food items\n\nB. Waste items which must be disposed of in specific hazardous bins (grease bins):\n• Fryer oil\n• Grill grease\n• Grill waste (debris from grill cooking)\n• Other hazardous items\n\nI acknowledge that I have read and understand the above policy on discarding food, waste items and grease.',
+            requiresParentSig: true,
+            formFields: []
         },
     ];
 
@@ -2020,7 +2053,7 @@
                                 </div>
                                 ${doc.requiresParentSig ? `
                                 <div class="signature-row">
-                                    <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></div>
+                                    <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;font-size:12px;">${isMinor() ? '<span style="color:#e74c3c;font-weight:600;">(Required — employee is under 18)</span>' : '<span style="color:#999;">(Optional)</span>'}</span></div>
                                     <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${sub.id}_guardianSig')">Clear Signature</button></div>
                                     <canvas id="${sub.id}_guardianSig" data-doc-id="${doc.id}" style="width:100%;height:75px;"></canvas>
                                     <div class="signature-date"><label>Date:</label><input type="date" id="${sub.id}_guardianDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
@@ -2056,7 +2089,7 @@
                     </div>
                     ${doc.requiresParentSig ? `
                     <div class="signature-row">
-                        <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;color:#999;font-size:12px;">(Optional)</span></div>
+                        <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;font-size:12px;">${isMinor() ? '<span style="color:#e74c3c;font-weight:600;">(Required — employee is under 18)</span>' : '<span style="color:#999;">(Optional)</span>'}</span></div>
                         <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_guardianSig')">Clear Signature</button></div>
                         <canvas id="${doc.id}_guardianSig" style="width:100%;height:75px;"></canvas>
                         <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_guardianDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
@@ -2338,7 +2371,14 @@
             let allSigned = doc.subSections.every(sub => {
                 const canvas = document.getElementById(`${sub.id}_empSig`);
                 const date = document.getElementById(`${sub.id}_empDate`);
-                return canvas && canvas.dataset.signed === 'true' && date && date.value;
+                let subSigned = !!(canvas && canvas.dataset.signed === 'true' && date && date.value);
+                // If minor, also require guardian signature on each sub-section
+                if (subSigned && doc.requiresParentSig && isMinor()) {
+                    const gCanvas = document.getElementById(`${sub.id}_guardianSig`);
+                    const gDate   = document.getElementById(`${sub.id}_guardianDate`);
+                    subSigned = !!(gCanvas && gCanvas.dataset.signed === 'true' && gDate && gDate.value);
+                }
+                return subSigned;
             });
 
             doc.status = allSigned ? 'signed' : 'pending';
@@ -2347,8 +2387,13 @@
             doc.subSections.forEach(sub => {
                 const empCanvas = document.getElementById(`${sub.id}_empSig`);
                 const empDate   = document.getElementById(`${sub.id}_empDate`);
-                const subSigned = empCanvas && empCanvas.dataset.signed === 'true' && empDate && empDate.value;
-
+                let subSigned = !!(empCanvas && empCanvas.dataset.signed === 'true' && empDate && empDate.value);
+                // If minor, guardian sig also required for badge to go green
+                if (subSigned && doc.requiresParentSig && isMinor()) {
+                    const gCanvas = document.getElementById(`${sub.id}_guardianSig`);
+                    const gDate   = document.getElementById(`${sub.id}_guardianDate`);
+                    subSigned = !!(gCanvas && gCanvas.dataset.signed === 'true' && gDate && gDate.value);
+                }
                 // Update the sub-section status badge
                 const badge = document.getElementById(`${sub.id}_badge`);
                 if (badge) {
@@ -2368,6 +2413,13 @@
             const empDate = document.getElementById(`${docId}_empDate`);
 
             let allSigned = empCanvas && empCanvas.dataset.signed === 'true' && empDate && empDate.value;
+
+            // If the employee is a minor, also require parent/guardian signature
+            if (allSigned && doc.requiresParentSig && isMinor()) {
+                const guardianCanvas = document.getElementById(`${docId}_guardianSig`);
+                const guardianDate   = document.getElementById(`${docId}_guardianDate`);
+                allSigned = !!(guardianCanvas && guardianCanvas.dataset.signed === 'true' && guardianDate && guardianDate.value);
+            }
 
             doc.status = allSigned ? 'signed' : empCanvas && empCanvas.dataset.signed === 'true' ? 'read' : 'pending';
         }
