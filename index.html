@@ -990,7 +990,7 @@
     <!-- STEP 3: DOCUMENTS (Read & Sign) -->
     <div class="step-content" data-step="3">
         <h2>Documents - Read & Sign</h2>
-        <p style="color: #666; margin: 15px 0 20px 0;">Please read each document carefully and provide your signature where required. Documents signed: <strong><span id="signedCount">0</span>/<span id="totalDocCount">21</span></strong></p>
+        <p style="color: #666; margin: 15px 0 20px 0;">Please read each document carefully and provide your signature where required. Documents signed: <strong><span id="signedCount">0</span>/<span id="totalDocCount">22</span></strong></p>
 
         <div id="docsTodoPanel" style="display:none;"></div>
 
@@ -1092,6 +1092,17 @@
     };
 
     const documents = [
+        {
+            id: 'doc21',
+            title: 'DG 2026 New Employee E-Package',
+            section: 'DHG 10',
+            status: 'pending',
+            content: '<p style="margin-bottom:12px;color:#555;">Please read the full DG 2026 New Employee E-Package below. This document contains DHG House Rules, Health &amp; Safety Policy, Discrimination &amp; Harassment Policy, Accessible Workplace Policy, Customer Service Standard, and Fitness for Work Policy. Once you have read the entire document, sign below to confirm.</p>',
+            isPdfEmbed: true,
+            pdfPath: 'DG 2026 New Employee E-Package.pdf',
+            requiresParentSig: true,
+            formFields: []
+        },
         {
             id: 'doc1',
             title: 'Cashier Agreement',
@@ -2032,7 +2043,36 @@
                     </div>
                 </div>`;
         } else if (doc.isPdfEmbed) {
-            html += `
+            if (doc.pdfPath) {
+                // Direct file-based PDF (e.g. DG 2026 E-Package)
+                const fileName = doc.pdfPath.split('/').pop();
+                html += `
+                <div style="margin:16px 0;">
+                    <iframe id="${doc.id}_pdfViewer" src="" style="width:100%;height:700px;border:1.5px solid #ccc;border-radius:8px;background:#e9e9e9;" loading="lazy"></iframe>
+                    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+                        <a id="${doc.id}_pdfDownload" href="${doc.pdfPath}" download="${fileName}" style="display:inline-block;padding:8px 16px;background:#FF6B00;color:#fff;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600;cursor:pointer;">Download PDF</a>
+                        <span style="font-size:12px;color:#999;align-self:center;">Scroll through the document above before signing.</span>
+                    </div>
+                </div>
+                <div class="signature-section" style="margin-top:20px;">
+                    <p style="font-size:14px;color:#444;margin-bottom:12px;"><strong>Acknowledgment:</strong> I confirm that I have read and understood all policies in the DG 2026 New Employee E-Package and agree to comply.</p>
+                    <div class="signature-row">
+                        <div class="signature-label">Employee Signature</div>
+                        <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_empSig')">Clear Signature</button></div>
+                        <canvas id="${doc.id}_empSig" style="width:100%;height:75px;"></canvas>
+                        <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_empDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
+                    </div>
+                    <div class="signature-row" style="margin-top:16px;">
+                        <div class="signature-label">Parent/Guardian Signature <span style="font-weight:400;font-size:12px;">${isMinor() ? '<span style="color:#e74c3c;font-weight:600;">(Required — employee is under 18)</span>' : '<span style="color:#999;">(Optional)</span>'}</span></div>
+                        <div class="sig-controls"><button type="button" class="btn-secondary" onclick="clearSignature('${doc.id}_guardianSig')">Clear Signature</button></div>
+                        <canvas id="${doc.id}_guardianSig" style="width:100%;height:75px;"></canvas>
+                        <div class="signature-date"><label>Date:</label><input type="date" id="${doc.id}_guardianDate" value="${todayStr}" onchange="updateDocumentStatus('${doc.id}')"></div>
+                    </div>
+                </div>
+                <button id="${doc.id}_done_btn" type="button" onclick="collapseMainAccordion('${doc.id}')" style="display:none;margin-top:20px;width:100%;padding:14px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;">✓ Done — Collapse Section</button>`;
+            } else {
+                // Base64-loaded PDF (TD1)
+                html += `
                 <div style="margin:16px 0;">
                     <iframe id="${doc.id}_pdfViewer" src="" style="width:100%;height:600px;border:1.5px solid #ccc;border-radius:8px;background:#e9e9e9;" loading="lazy"></iframe>
                     <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
@@ -2056,6 +2096,7 @@
                     </div>
                 </div>
                 <button id="${doc.id}_done_btn" type="button" onclick="collapseMainAccordion('${doc.id}')" style="display:none;margin-top:20px;width:100%;padding:14px;background:#27ae60;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;">✓ Done — Collapse Section</button>`;
+            }
         } else if (doc.isSafetyDoc) {
             html += `<div style="margin:20px 0;background:#f0f4f8;padding:15px;border-radius:4px;">`;
             doc.subSections.forEach(sub => {
@@ -2229,6 +2270,17 @@
         if (content.id === 'doc14_content' && !content.dataset.pdfLoaded) {
             content.dataset.pdfLoaded = 'true';
             loadTD1PDF();
+        }
+
+        // ── File-based PDF docs: set iframe src from pdfPath on first open ──
+        if (!content.dataset.pdfLoaded) {
+            const docId2 = content.closest('[data-doc-id]').getAttribute('data-doc-id');
+            const doc2 = documents.find(d => d.id === docId2);
+            if (doc2 && doc2.isPdfEmbed && doc2.pdfPath) {
+                content.dataset.pdfLoaded = 'true';
+                const iframe = document.getElementById(doc2.id + '_pdfViewer');
+                if (iframe) iframe.src = doc2.pdfPath;
+            }
         }
 
         // ── Lazy canvas init: set up signature pads after layout settles ──
