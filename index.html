@@ -990,7 +990,7 @@
     <!-- STEP 3: DOCUMENTS (Read & Sign) -->
     <div class="step-content" data-step="3">
         <h2>Documents - Read & Sign</h2>
-        <p style="color: #666; margin: 15px 0 20px 0;">Please read each document carefully and provide your signature where required. Documents signed: <strong><span id="signedCount">0</span>/<span id="totalDocCount">22</span></strong></p>
+        <p style="color: #666; margin: 15px 0 20px 0;">Please read each document carefully and provide your signature where required. Documents signed: <strong><span id="signedCount">0</span>/<span id="totalDocCount">24</span></strong></p>
 
         <div id="docsTodoPanel" style="display:none;"></div>
 
@@ -1346,6 +1346,24 @@
             section: 'DHG 9',
             status: 'pending',
             content: 'DISCARDING FOOD, WASTE ITEMS AND GREASE\n\nWe would like to clarify that no food, waste items or grease should be dumped in sink drains, floor drains or exterior drains. Only water, wastewater (dirty water from washing dishes, mopping floors, cleaning exterior grounds etc.) and beverages (pop, coffee etc.) can go down drains.\n\nPlease ensure we are all disposing of items as listed below:\n\nA. Liquid food items which must be discarded with regular restaurant garbage:\n• Gravy\n• Batter\n• Other liquid food items\n\nB. Waste items which must be disposed of in specific hazardous bins (grease bins):\n• Fryer oil\n• Grill grease\n• Grill waste (debris from grill cooking)\n• Other hazardous items\n\nI acknowledge that I have read and understand the above policy on discarding food, waste items and grease.',
+            requiresParentSig: true,
+            formFields: []
+        },
+        {
+            id: 'doc22',
+            title: 'Attendance, Sick Calls & Lateness Policy',
+            section: 'DHG 11',
+            status: 'pending',
+            content: 'ATTENDANCE, SICK CALLS & LATENESS POLICY\n\nWe\'ve seen a growing number of single-day sick calls and late arrivals across our restaurants. Every last-minute absence or late start leaves your teammates short-staffed and puts more pressure on them. Starting now, we\'re putting a clear attendance process in place so everyone is treated fairly and consistently.\n\nPROCESS\n\n• If you can\'t work a shift, call your manager at least 5 hours before it starts, this will count as a missed shift.\n• If you\'re running late, call your manager as soon as you know. Arriving more than 5 minutes after your shift starts counts as a late arrival.\n• Both of these will be logged in Clearview.\n\nIf you have 3 single-day absences or late arrivals, in any combination, in any rolling 90 days, your manager will meet with you.\n\n• Absences you have worked to arrange approved (by your Manager) coverage for will not be logged\n• Pre-approved time off will not be logged\n\n*Please note, a no-call/no-show will continue to be handled under our progressive discipline process.\n\nIf a health or family situation is affecting your attendance, talk to your manager. We\'ll work with you. You will never be asked for a doctor\'s note or a diagnosis for your ESA sick days.\n\nThank you for being there for your team.\n\nI acknowledge that I have read and understand the Attendance, Sick Calls & Lateness Policy.',
+            requiresParentSig: true,
+            formFields: []
+        },
+        {
+            id: 'doc23',
+            title: 'Vacation Scheduling & Extended Absence Policy',
+            section: 'DHG 12',
+            status: 'pending',
+            content: 'VACATION SCHEDULING & EXTENDED ABSENCE POLICY\n\nOur restaurants depend on every team member being here when scheduled. When time off isn\'t planned fairly, shifts go short and teammates carry the extra load. This policy sets one clear set of rules for booking vacation and taking time off, so that:\n\n• everyone has the same fair chance to get the vacation weeks they want\n• everyone knows ahead of time what will and won\'t be approved\n• every request is handled the same way, at every location, for every employee\n\nThis policy applies to all hourly and salaried employees of Dhanoa Group Ltd. restaurants in Ontario. Where the Employment Standards Act, 2000 (ESA) or the Ontario Human Rights Code gives you more, the law applies.\n\nVacation is taken one week at a time, in a Vacation Zone.\n\n• Week 1 — Zone 1: January 1 to March 31 — All employees with vacation earned\n• Week 2 — Zone 2: June 1 to August 31 — All employees with vacation earned\n• Week 3 — Zone 1 or Zone 2 — Employees with 5+ years of service\n\n1. Submit your request to your Manager in email (to the store email).\n2. Submit Zone 1 requests by November 30 of the year before. Submit Zone 2 requests by April 30.\n3. Requests are approved based on staffing needs. If too many people ask for the same week, requests are approved in the order received. Vacations cannot be stacked.\n4. Your GM will approve or decline your request in writing within 14 days.\n\nPersonal time off beyond your vacation entitlement is not approved. Requests to add unpaid days to a vacation week, or to take two or more weeks together, will be declined.\n\nA declined request is a final written warning. If you miss scheduled shifts to take time off that was declined or never approved, or you do not return on your return date, your employment will be terminated for cause, with no further warning.\n\nThis policy does not limit your right to:\n\n• ESA leaves, including sick, family responsibility, bereavement, family caregiver, family medical, critical illness, pregnancy and parental leave\n• accommodation under the Human Rights Code\n• time away for genuine emergencies, such as illness or a family emergency (must be supported by documentation).\n\nI acknowledge that I have read and understand the Vacation Scheduling & Extended Absence Policy.',
             requiresParentSig: true,
             formFields: []
         },
@@ -1913,56 +1931,66 @@
         formData.step1.sinCardFile = null; // will be populated in readSINCardFile()
     }
 
+
+    // ── Upload helpers: shrink photos and cap PDF size so the submission isn't too big for Google to accept ──
+    const MAX_PDF_BYTES = 3 * 1024 * 1024; // 3 MB per PDF
+
+    function fileToPayload(file) {
+        return new Promise(function(resolve) {
+            function plain() {
+                const r = new FileReader();
+                r.onload = function(e) { resolve({ fileName: file.name, mimeType: file.type, data: e.target.result.split(',')[1] }); };
+                r.onerror = function() { resolve(null); };
+                r.readAsDataURL(file);
+            }
+            if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(file.type || '')) { plain(); return; }
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = function() {
+                try {
+                    const max = 1800;
+                    const scale = Math.min(1, max / Math.max(img.width, img.height));
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(img.width * scale);
+                    c.height = Math.round(img.height * scale);
+                    const ctx = c.getContext('2d');
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(0, 0, c.width, c.height);
+                    ctx.drawImage(img, 0, 0, c.width, c.height);
+                    const data = c.toDataURL('image/jpeg', 0.75).split(',')[1];
+                    URL.revokeObjectURL(url);
+                    resolve({ fileName: file.name.replace(/\.[^.]+$/, '') + '.jpg', mimeType: 'image/jpeg', data: data });
+                } catch (e) { URL.revokeObjectURL(url); plain(); }
+            };
+            img.onerror = function() { URL.revokeObjectURL(url); plain(); };
+            img.src = url;
+        });
+    }
+
+    function enforceUploadSize(input) {
+        const f = input.files && input.files[0];
+        if (f && f.type === 'application/pdf' && f.size > MAX_PDF_BYTES) {
+            alert('That PDF is ' + (f.size / 1048576).toFixed(1) + ' MB, which is too large to submit. Please upload a photo (JPG/PNG) of the document instead, or a PDF smaller than 3 MB.');
+            input.value = '';
+            return false;
+        }
+        return true;
+    }
+
     // Returns a Promise that resolves once the work permit file (if any) has been
     // read into formData.step1.workPermitFile as base64.
     function readWorkPermitFile() {
         const file = formData.step1._workPermitFileRef;
-        if (!file) {
-            formData.step1.workPermitFile = null;
-            return Promise.resolve();
-        }
-        return new Promise(function(resolve) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                formData.step1.workPermitFile = {
-                    fileName: file.name,
-                    mimeType: file.type,
-                    data: e.target.result.split(',')[1] // base64 only
-                };
-                resolve();
-            };
-            reader.onerror = function() {
-                formData.step1.workPermitFile = null;
-                resolve(); // don't block submission on file read error
-            };
-            reader.readAsDataURL(file);
-        });
+        if (!file) { formData.step1.workPermitFile = null; return Promise.resolve(); }
+        return fileToPayload(file).then(function(p) { formData.step1.workPermitFile = p; });
     }
 
     // Returns a Promise that resolves once the SIN card file (if any) has been
     // read into formData.step1.sinCardFile as base64.
     function readSINCardFile() {
         const file = formData.step1._sinCardFileRef;
-        if (!file) {
-            formData.step1.sinCardFile = null;
-            return Promise.resolve();
-        }
-        return new Promise(function(resolve) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                formData.step1.sinCardFile = {
-                    fileName: file.name,
-                    mimeType: file.type,
-                    data: e.target.result.split(',')[1] // base64 only
-                };
-                resolve();
-            };
-            reader.onerror = function() {
-                formData.step1.sinCardFile = null;
-                resolve();
-            };
-            reader.readAsDataURL(file);
-        });
+        if (!file) { formData.step1.sinCardFile = null; return Promise.resolve(); }
+        return fileToPayload(file).then(function(p) { formData.step1.sinCardFile = p; });
     }
 
     function saveStep2Data() {
@@ -1975,41 +2003,15 @@
     // read into formData.step2.voidChequeFile as base64.
     function readVoidChequeFile() {
         const file = formData.step2 && formData.step2._voidChequeFileRef;
-        if (!file) {
-            if (formData.step2) formData.step2.voidChequeFile = null;
-            return Promise.resolve();
-        }
-        return new Promise(function(resolve) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                formData.step2.voidChequeFile = {
-                    fileName: file.name,
-                    mimeType: file.type,
-                    data: e.target.result.split(',')[1]
-                };
-                resolve();
-            };
-            reader.onerror = function() {
-                formData.step2.voidChequeFile = null;
-                resolve();
-            };
-            reader.readAsDataURL(file);
-        });
+        if (!file) { if (formData.step2) formData.step2.voidChequeFile = null; return Promise.resolve(); }
+        return fileToPayload(file).then(function(p) { formData.step2.voidChequeFile = p; });
     }
 
     function readTD1UploadFile() {
         const input = document.getElementById('doc14_uploadFile');
         const file = input && input.files && input.files[0];
         if (!file) { formData.td1UploadFile = null; return Promise.resolve(); }
-        return new Promise(function(resolve) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                formData.td1UploadFile = { fileName: file.name, mimeType: file.type, data: e.target.result.split(',')[1] };
-                resolve();
-            };
-            reader.onerror = function() { formData.td1UploadFile = null; resolve(); };
-            reader.readAsDataURL(file);
-        });
+        return fileToPayload(file).then(function(p) { formData.td1UploadFile = p; });
     }
 
     function updateProgressBar(step) {
@@ -2083,7 +2085,7 @@
                 <div style="margin-top:20px;padding:16px;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;">
                     <p style="font-size:14px;font-weight:600;color:#333;margin-bottom:8px;">📎 Upload Your Completed TD1 (Optional)</p>
                     <p style="font-size:13px;color:#666;margin-bottom:12px;">If you have filled out and scanned/photographed your completed TD1 form, you can upload it here. Accepted formats: PDF, JPG, PNG.</p>
-                    <input type="file" id="${doc.id}_uploadFile" accept=".pdf,.jpg,.jpeg,.png" style="font-size:13px;width:100%;">
+                    <input type="file" id="${doc.id}_uploadFile" accept=".pdf,.jpg,.jpeg,.png" onchange="enforceUploadSize(this)" style="font-size:13px;width:100%;">
                     <p style="font-size:11px;color:#999;margin-top:6px;">This file will be saved to your employee folder in Google Drive.</p>
                 </div>
                 <div class="signature-section" style="margin-top:20px;">
@@ -3178,9 +3180,12 @@
         // Radio groups — instant save (no typing involved)
         document.querySelectorAll('input[name="legallyEntitled"], input[name="paidFees"], input[name="offCampus"]')
             .forEach(function(r) { r.addEventListener('change', autoSaveStep1); });
-        document.getElementById('workPermitFile').addEventListener('change', autoSaveStep1);
-        document.getElementById('sinCardFile').addEventListener('change', autoSaveStep1);
-        document.getElementById('voidChequeFile').addEventListener('change', autoSaveStep2);
+        document.getElementById('workPermitFile').addEventListener('change', function(){ enforceUploadSize(this); });
+    document.getElementById('workPermitFile').addEventListener('change', autoSaveStep1);
+        document.getElementById('sinCardFile').addEventListener('change', function(){ enforceUploadSize(this); });
+    document.getElementById('sinCardFile').addEventListener('change', autoSaveStep1);
+        document.getElementById('voidChequeFile').addEventListener('change', function(){ enforceUploadSize(this); });
+    document.getElementById('voidChequeFile').addEventListener('change', autoSaveStep2);
 
         // ── Live auto-save: Step 2 fields ──────────────────────────────────────
         const step2Fields = ['institutionName','institutionNumber','transitNumber','accountNumber'];
